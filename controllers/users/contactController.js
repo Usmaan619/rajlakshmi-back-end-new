@@ -4,7 +4,7 @@ const contactModel = require("../../model/users/contactController");
 // Controller for handling contact form submissions
 exports.contact = asyncHandler(async (req, res) => {
   try {
-    const { user_name, user_email, user_mobile, user_subject, user_message } =
+    const { user_name, user_email, user_mobile, select_query_type, user_message } =
       req.body;
 
     // Validate required fields
@@ -12,7 +12,7 @@ exports.contact = asyncHandler(async (req, res) => {
       !user_name ||
       !user_email ||
       !user_mobile ||
-      !user_subject ||
+      !select_query_type ||
       !user_message
     ) {
       return res.json({ message: "All fields are required." });
@@ -23,7 +23,7 @@ exports.contact = asyncHandler(async (req, res) => {
       user_name,
       user_email,
       user_mobile,
-      user_subject,
+      select_query_type,
       user_message,
     };
 

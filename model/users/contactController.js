@@ -3,7 +3,7 @@ const { withConnection } = require("../../utils/helper");
 // Save contact information to the database
 exports.contact = async (userTable) => {
   try {
-    const { user_name, user_email, user_mobile, user_subject, user_message } =
+    const { user_name, user_email, user_mobile, select_query_type, user_message } =
       userTable;
 
     return await withConnection(async (connection) => {
@@ -13,7 +13,7 @@ exports.contact = async (userTable) => {
       user_name,
       user_email,
       user_mobile,
-      user_subject,
+      select_query_type,
       user_message
     ) VALUES (?, ?, ?, ?, ?)
   `;
@@ -23,7 +23,7 @@ exports.contact = async (userTable) => {
         user_name,
         user_email,
         user_mobile,
-        user_subject,
+        select_query_type,
         user_message,
       ]);
 

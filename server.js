@@ -39,7 +39,6 @@ app.use("/users", usersRoutes);
 
 app.use("/admin", adminRoutes);
 
-
 app.use("/", metaFeedRoute);
 
 // Error handling middleware
