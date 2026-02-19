@@ -10,7 +10,7 @@ exports.insertPayment = async (
   isPaymentPaid
 ) => {
   try {
-    const query = `INSERT INTO gauswarn_payments (status, paymentDetails, amount, isPaymentPaid) VALUES (?, ?, ?, ?)`;
+    const query = `INSERT INTO rajlaksmi_payments (status, paymentDetails, amount, isPaymentPaid) VALUES (?, ?, ?, ?)`;
 
     await db
       .promise()

@@ -2,77 +2,10 @@
 
 const { withConnection } = require("../../utils/helper");
 
-// exports.findAdminUserByEmail = async (email) => {
-//   try {
-//     return await withConnection(async (connection) => {
-//       const query = `SELECT * FROM organic_farmer_admin_user WHERE email = ?`;
-//       const [rows] = await connection.execute(query, [email]);
-//       return rows[0] || null;
-//     });
-//   } catch (error) {
-//     console.log("error: ", error);
-//     return error;
-//   }
-// };
-
-// // Registration new user
-// exports.adminUserRegister = async (registerTable) => {
-//   const { full_name, email, mobile_number, password, role } = registerTable;
-
-//   //MySQl query
-//   try {
-//     return await withConnection(async (connection) => {
-//       const query = `INSERT INTO organic_farmer_admin_user (full_name, email, mobile_number, password,role) VALUES (?, ?, ?, ?, ?)`;
-
-//       //Execute the query
-//       const [results] = await connection.execute(query, [
-//         full_name,
-//         email,
-//         mobile_number,
-//         password,
-//         role,
-//       ]);
-//       return results;
-//     });
-//   } catch (error) {
-//     console.log("error: ", error);
-//     return error;
-//   }
-// };
-
-// exports.findUserById = async (uid) => {
-//   try {
-//     return await withConnection(async (connection) => {
-//       const query = `SELECT * FROM rajlaxmi_user WHERE uid = ?`;
-//       const [rows] = await connection.execute(query, [uid]);
-//       return rows[0] || null;
-//     });
-//   } catch (error) {
-//     console.log("error: ", error);
-//     return error;
-//   }
-// };
-
-// exports.getAllUsers = async () => {
-//   try {
-//     return await withConnection(async (connection) => {
-//       const query = `SELECT * FROM rajlaxmi_user`;
-//       const [rows] = await connection.execute(query);
-//       return rows || null;
-//     });
-//   } catch (error) {
-//     console.log("error: ", error);
-//     return error;
-//   }
-// };
-
-// model/admin/registerModel.js
-
-//  Find admin by email (login के लिए)
 exports.findAdminUserByEmail = async (email) => {
   try {
     return await withConnection(async (connection) => {
-      const query = `SELECT * FROM gauswarn_admin_user WHERE email = ? LIMIT 1`;
+      const query = `SELECT * FROM rajlaksmi_admin_user WHERE email = ? LIMIT 1`;
       const [rows] = await connection.execute(query, [email]);
       return rows[0] || null;
     });
@@ -90,7 +23,7 @@ exports.adminUserRegister = async (registerTable) => {
   try {
     return await withConnection(async (connection) => {
       const query = `
-        INSERT INTO gauswarn_admin_user 
+        INSERT INTO rajlaksmi_admin_user 
           (full_name, email, mobile_number, password, role, permissions) 
         VALUES (?, ?, ?, ?, ?, ?)
       `;
@@ -116,7 +49,7 @@ exports.adminUserRegister = async (registerTable) => {
 exports.getAllAdminUsers = async () => {
   try {
     return await withConnection(async (connection) => {
-      const query = `SELECT * FROM gauswarn_admin_user ORDER BY id DESC`;
+      const query = `SELECT * FROM rajlaksmi_admin_user ORDER BY id DESC`;
       const [rows] = await connection.execute(query);
       return rows || [];
     });
@@ -166,7 +99,7 @@ exports.updateAdminUser = async (id, updateData) => {
       }
 
       const query = `
-        UPDATE gauswarn_admin_user 
+        UPDATE rajlaksmi_admin_user 
         SET ${fields.join(", ")} 
         WHERE id = ?
       `;
@@ -185,7 +118,7 @@ exports.updateAdminUser = async (id, updateData) => {
 exports.deleteAdminUser = async (id) => {
   try {
     return await withConnection(async (connection) => {
-      const query = `DELETE FROM gauswarn_admin_user WHERE id = ?`;
+      const query = `DELETE FROM rajlaksmi_admin_user WHERE id = ?`;
       const [result] = await connection.execute(query, [id]);
       return result;
     });
@@ -216,12 +149,12 @@ exports.getAllGauswarnUsers = async ({ search, page, limit }) => {
       ? `WHERE full_name LIKE '%${search}%' OR email LIKE '%${search}%' OR mobile_number LIKE '%${search}%'`
       : "";
 
-    const totalQuery = `SELECT COUNT(*) as total FROM gauswarn_admin_user ${searchSql}`;
+    const totalQuery = `SELECT COUNT(*) as total FROM rajlaksmi_admin_user ${searchSql}`;
     const [[totalResult]] = await connection.execute(totalQuery);
 
     const query = `
       SELECT *
-      FROM gauswarn_admin_user
+      FROM rajlaksmi_admin_user
       ${searchSql}
       LIMIT ${limit}
       OFFSET ${offset}
@@ -239,7 +172,7 @@ exports.getAllGauswarnUsers = async ({ search, page, limit }) => {
 exports.updateUser = async (id, data) => {
   return await withConnection(async (connection) => {
     const query = `
-      UPDATE gauswarn_admin_user SET 
+      UPDATE rajlaksmi_admin_user SET 
       full_name=?,
       email=?,
       mobile_number=?,
@@ -261,7 +194,7 @@ exports.updateUser = async (id, data) => {
 
 exports.deleteUser = async (id) => {
   return await withConnection(async (connection) => {
-    const query = `DELETE FROM gauswarn_admin_user WHERE id = ?`;
+    const query = `DELETE FROM rajlaksmi_admin_user WHERE id = ?`;
     await connection.execute(query, [id]);
   });
 };

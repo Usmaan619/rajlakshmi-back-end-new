@@ -28,7 +28,7 @@ exports.getAll = async ({ page, limit, search, status }) => {
     // ❌ NO ? FOR LIMIT / OFFSET
     const sql = `
       SELECT *
-      FROM gauswarn_newsletter_subscribers
+      FROM rajlaksmi_newsletter_subscribers
       ${where}
       ORDER BY id DESC
       LIMIT ${limit} OFFSET ${offset}
@@ -36,7 +36,7 @@ exports.getAll = async ({ page, limit, search, status }) => {
 
     const countSql = `
       SELECT COUNT(*) AS total
-      FROM gauswarn_newsletter_subscribers
+      FROM rajlaksmi_newsletter_subscribers
       ${where}
     `;
 
@@ -58,7 +58,7 @@ exports.getAll = async ({ page, limit, search, status }) => {
 exports.create = async (email) => {
   return await withConnection(async (connection) => {
     const [res] = await connection.execute(
-      `INSERT INTO gauswarn_newsletter_subscribers (email) VALUES (?)`,
+      `INSERT INTO rajlaksmi_newsletter_subscribers (email) VALUES (?)`,
       [email]
     );
     return res.insertId;
@@ -68,7 +68,7 @@ exports.create = async (email) => {
 exports.updateStatus = async (id, status) => {
   return await withConnection(async (connection) => {
     await connection.execute(
-      `UPDATE gauswarn_newsletter_subscribers SET status=? WHERE id=?`,
+      `UPDATE rajlaksmi_newsletter_subscribers SET status=? WHERE id=?`,
       [status, id]
     );
     return true;
@@ -77,7 +77,7 @@ exports.updateStatus = async (id, status) => {
 
 exports.delete = async (id) => {
   return await withConnection(async (connection) => {
-    await connection.execute(`DELETE FROM gauswarn_newsletter_subscribers WHERE id=?`, [
+    await connection.execute(`DELETE FROM rajlaksmi_newsletter_subscribers WHERE id=?`, [
       id,
     ]);
     return true;

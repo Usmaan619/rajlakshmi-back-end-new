@@ -57,7 +57,7 @@ const createPaymentAndGenerateUrl = async (req, res) => {
   const amountInPaise = user_total_amount * 100;
 
   // Insert user details into the database
-  const userQuery = `INSERT INTO gauswarn_payment (user_name, user_mobile_num, user_email, user_state, user_city, user_country, user_house_number, user_landmark, user_pincode, user_total_amount, purchase_price, product_quantity, date, time)
+  const userQuery = `INSERT INTO rajlaksmi_payment (user_name, user_mobile_num, user_email, user_state, user_city, user_country, user_house_number, user_landmark, user_pincode, user_total_amount, purchase_price, product_quantity, date, time)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
   try {
@@ -228,7 +228,7 @@ const getPhonePeUrlStatusAndUpdatePayment = async (req, res) => {
     const paymentDetails = response.data;
 
     // Update payment status in the database
-    const query = `UPDATE gauswarn_payment SET status = ?, paymentDetails = ?, isPaymentPaid = ? WHERE user_id = ?`;
+    const query = `UPDATE rajlaksmi_payment SET status = ?, paymentDetails = ?, isPaymentPaid = ? WHERE user_id = ?`;
     const isPaymentPaid = paymentStatus === "true";
 
     const [result] = await withConnection(async (connection) => {
@@ -243,7 +243,7 @@ const getPhonePeUrlStatusAndUpdatePayment = async (req, res) => {
     if (result === 0) {
       return res.json({ success: false, message: "Payment record not found." });
     }
-    // const whatsappApiUrl = `https://bhashsms.com/api/sendmsg.php?user=RAJLAKSHMIBWA&pass=123456&sender=BUZWAP&phone=${user_mobile_num}&text=gauswarn_ghee002&priority=wa&stype=normal&Params=${ordeId},${user_total_amount}&htype=image&url=https://i.ibb.co/p6P86j3J/Whats-App-Image-2025-02-17-at-12-46-41.jpg`;
+    // const whatsappApiUrl = `https://bhashsms.com/api/sendmsg.php?user=RAJLAKSHMIBWA&pass=123456&sender=BUZWAP&phone=${user_mobile_num}&text=rajlaksmi_ghee002&priority=wa&stype=normal&Params=${ordeId},${user_total_amount}&htype=image&url=https://i.ibb.co/p6P86j3J/Whats-App-Image-2025-02-17-at-12-46-41.jpg`;
     if (response?.data?.code === "PAYMENT_SUCCESS") {
       const result = await sendWhatsAppMessage(mobNo, orderId, amount);
 
@@ -263,7 +263,7 @@ const getPhonePeUrlStatusAndUpdatePayment = async (req, res) => {
 };
 
 async function sendWhatsAppMessage(user_mobile_num, ordeId, user_total_amount) {
-  const whatsappApiUrl = `https://bhashsms.com/api/sendmsg.php?user=RAJLAKSHMIBWA&pass=123456&sender=BUZWAP&phone=${user_mobile_num}&text=gauswarn_ghee002&priority=wa&stype=normal&Params=${ordeId},${user_total_amount}&htype=image&url=https://i.ibb.co/p6P86j3J/Whats-App-Image-2025-02-17-at-12-46-41.jpg`;
+  const whatsappApiUrl = `https://bhashsms.com/api/sendmsg.php?user=RAJLAKSHMIBWA&pass=123456&sender=BUZWAP&phone=${user_mobile_num}&text=rajlaksmi_ghee002&priority=wa&stype=normal&Params=${ordeId},${user_total_amount}&htype=image&url=https://i.ibb.co/p6P86j3J/Whats-App-Image-2025-02-17-at-12-46-41.jpg`;
 
   try {
     const response = await axios.get(whatsappApiUrl);

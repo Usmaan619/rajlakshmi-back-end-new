@@ -4,7 +4,7 @@ const { withConnection } = require("../../utils/helper");
 exports.getAllBanners = async () => {
   try {
     return await withConnection(async (connection) => {
-      const query = "SELECT * FROM gauswarn_home_banners WHERE id = 1";
+      const query = "SELECT * FROM rajlaksmi_home_banners WHERE id = 1";
       const [rows] = await connection.execute(query);
       return rows[0];
     });
@@ -18,7 +18,7 @@ exports.getAllBanners = async () => {
 //   try {
 //     return await withConnection(async (connection) => {
 //       const column = `banner${slot}`;
-//       const query = `UPDATE gauswarn_home_banners SET ${column} = ? WHERE id = 1`;
+//       const query = `UPDATE rajlaksmi_home_banners SET ${column} = ? WHERE id = 1`;
 //       await connection.execute(query, [url]);
 //       return true;
 //     });
@@ -31,7 +31,7 @@ exports.updateBannerSlot = async (slot, url) => {
   try {
     return await withConnection(async (connection) => {
       const column = `banner${slot}`;
-      const query = `UPDATE gauswarn_home_banners SET ${column} = ? WHERE id = 1`;
+      const query = `UPDATE rajlaksmi_home_banners SET ${column} = ? WHERE id = 1`;
 
       console.log("\n----- SQL DEBUG -----");
       console.log("QUERY:", query);
@@ -55,7 +55,7 @@ exports.getBannerSlot = async (slot) => {
   try {
     return await withConnection(async (connection) => {
       const column = `banner${slot}`;
-      const query = `SELECT ${column} AS banner FROM gauswarn_home_banners WHERE id = 1`;
+      const query = `SELECT ${column} AS banner FROM rajlaksmi_home_banners WHERE id = 1`;
 
       const [rows] = await connection.execute(query);
       return rows[0]?.banner || null;
@@ -69,12 +69,12 @@ exports.ensureHomeBannerRow = async () => {
   try {
     return await withConnection(async (connection) => {
       const [rows] = await connection.execute(
-        "SELECT COUNT(*) AS total FROM gauswarn_home_banners WHERE id = 1"
+        "SELECT COUNT(*) AS total FROM rajlaksmi_home_banners WHERE id = 1"
       );
 
       if (rows[0].total === 0) {
         await connection.execute(
-          "INSERT INTO gauswarn_home_banners (id, banner1, banner2, banner3, banner4) VALUES (1, NULL, NULL, NULL, NULL)"
+          "INSERT INTO rajlaksmi_home_banners (id, banner1, banner2, banner3, banner4) VALUES (1, NULL, NULL, NULL, NULL)"
         );
       }
     });

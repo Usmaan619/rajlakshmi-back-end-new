@@ -32,7 +32,7 @@ exports.getFilteredPaymentData = async (filterType, month, year) => {
           DATE_FORMAT(date, '%Y-%m-%d') AS day,
           COUNT(*) AS daily_total_users,
           SUM(user_total_amount) AS daily_total_sales
-        FROM gauswarn_payment
+        FROM rajlaksmi_payment
         WHERE date BETWEEN ? AND ?
           AND status != 'Cancel'
           AND isPaymentPaid = '1'
@@ -43,7 +43,7 @@ exports.getFilteredPaymentData = async (filterType, month, year) => {
         SELECT 
           COUNT(*) AS total_users,
           SUM(user_total_amount) AS total_sales
-        FROM gauswarn_payment
+        FROM rajlaksmi_payment
         WHERE date BETWEEN ? AND ?
           AND status != 'Cancel'
           AND isPaymentPaid = '1';
@@ -52,7 +52,7 @@ exports.getFilteredPaymentData = async (filterType, month, year) => {
       const profitDataQuery = `
         SELECT 
           user_total_amount, purchase_price, product_quantity
-        FROM gauswarn_payment
+        FROM rajlaksmi_payment
         WHERE date BETWEEN ? AND ?
           AND status != 'Cancel'
           AND isPaymentPaid = '1';
@@ -60,7 +60,7 @@ exports.getFilteredPaymentData = async (filterType, month, year) => {
 
       const totalOrdersQuery = `
         SELECT COUNT(*) AS total_orders
-        FROM gauswarn_payment
+        FROM rajlaksmi_payment
         WHERE date BETWEEN ? AND ?
           AND status != 'Cancel'
           AND isPaymentPaid = '1';
@@ -68,12 +68,12 @@ exports.getFilteredPaymentData = async (filterType, month, year) => {
 
       const totalProductsQuery = `
         SELECT COUNT(*) AS total_products
-        FROM gauswarn_product;
+        FROM rajlaksmi_product;
       `;
 
       const topUsersQuery = `
         SELECT *
-        FROM gauswarn_payment
+        FROM rajlaksmi_payment
         WHERE date BETWEEN ? AND ?
           AND status != 'Cancel'
           AND isPaymentPaid = '1';
@@ -81,7 +81,7 @@ exports.getFilteredPaymentData = async (filterType, month, year) => {
 
       const recentOrdersQuery = `
         SELECT *
-        FROM gauswarn_payment
+        FROM rajlaksmi_payment
         WHERE status != 'Cancel'
           AND isPaymentPaid = '1'
         ORDER BY date DESC, time DESC
@@ -167,7 +167,7 @@ exports.getFilteredPaymentData = async (filterType, month, year) => {
 //           DATE_FORMAT(date, '%Y-%m-%d') AS day,
 //           COUNT(*) AS daily_total_users,
 //           SUM(user_total_amount) AS daily_total_sales
-//         FROM gauswarn_payment
+//         FROM rajlaksmi_payment
 //         WHERE date BETWEEN ? AND ?
 //           AND status != 'Cancel'
 //         GROUP BY day;
@@ -177,7 +177,7 @@ exports.getFilteredPaymentData = async (filterType, month, year) => {
 //         SELECT
 //           COUNT(*) AS total_users,
 //           SUM(user_total_amount) AS total_sales
-//         FROM gauswarn_payment
+//         FROM rajlaksmi_payment
 //         WHERE date BETWEEN ? AND ?
 //           AND status != 'Cancel';
 //       `;
@@ -185,33 +185,33 @@ exports.getFilteredPaymentData = async (filterType, month, year) => {
 //       const profitDataQuery = `
 //         SELECT
 //           user_total_amount, purchase_price, product_quantity
-//         FROM gauswarn_payment
+//         FROM rajlaksmi_payment
 //         WHERE date BETWEEN ? AND ?
 //           AND status != 'Cancel';
 //       `;
 
 //       const totalOrdersQuery = `
 //         SELECT COUNT(*) AS total_orders
-//         FROM gauswarn_payment
+//         FROM rajlaksmi_payment
 //         WHERE date BETWEEN ? AND ?
 //           AND status != 'Cancel';
 //       `;
 
 //       const totalProductsQuery = `
 //         SELECT COUNT(*) AS total_products
-//         FROM gauswarn_product;
+//         FROM rajlaksmi_product;
 //       `;
 
 //       const topUsersQuery = `
 //         SELECT *
-//         FROM gauswarn_payment
+//         FROM rajlaksmi_payment
 //         WHERE date BETWEEN ? AND ?
 //           AND status != 'Cancel';
 //       `;
 
 //       const recentOrdersQuery = `
 //         SELECT *
-//         FROM gauswarn_payment
+//         FROM rajlaksmi_payment
 //         WHERE status != 'Cancel'
 //         ORDER BY date DESC, time DESC
 //         LIMIT 10;

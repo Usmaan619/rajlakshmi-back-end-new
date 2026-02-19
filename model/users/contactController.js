@@ -9,7 +9,7 @@ exports.contact = async (userTable) => {
     return await withConnection(async (connection) => {
       // SQL query
       const query = `
-    INSERT INTO gauswarn_contact (
+    INSERT INTO rajlaksmi_contact (
       user_name,
       user_email,
       user_mobile,
@@ -39,7 +39,7 @@ exports.contact = async (userTable) => {
 exports.getAllContact = async () => {
   try {
     return await withConnection(async (connection) => {
-      const query = "SELECT * FROM gauswarn_contact";
+      const query = "SELECT * FROM rajlaksmi_contact";
       const [contact] = await connection.execute(query);
       return contact;
     });

@@ -132,7 +132,7 @@ const savePaymentDetails = async (userData, shopmozoOrderId, cart = []) => {
   const time = getCurrentTime();
 
   const query = `
-    INSERT INTO gauswarn_payment
+    INSERT INTO rajlaksmi_payment
     (
       user_name, user_mobile_num, user_email, user_state, user_city,
       user_country, user_house_number, user_landmark, user_pincode,
@@ -399,7 +399,7 @@ const getRazorpayStatusAndUpdatePayment = async (req, res) => {
     if (isPaid) {
       // Fetch user data
       const [[userRow]] = await withConnection((conn) =>
-        conn.execute(`SELECT * FROM gauswarn_payment WHERE user_id=?`, [
+        conn.execute(`SELECT * FROM rajlaksmi_payment WHERE user_id=?`, [
           notes.userId,
         ]),
       );
@@ -415,7 +415,7 @@ const getRazorpayStatusAndUpdatePayment = async (req, res) => {
     // Update database
     await withConnection((conn) =>
       conn.execute(
-        `UPDATE gauswarn_payment
+        `UPDATE rajlaksmi_payment
          SET status=?, paymentDetails=?, isPaymentPaid=?, razorpay_payment_id=?, shopmozo_order_id=?
          WHERE user_id=?`,
         [
@@ -492,7 +492,7 @@ const getRazorpayStatusAndUpdatePayment = async (req, res) => {
 //     //  Update database
 //     await withConnection((conn) =>
 //       conn.execute(
-//         `UPDATE gauswarn_payment
+//         `UPDATE rajlaksmi_payment
 //          SET status=?, paymentDetails=?, isPaymentPaid=?, razorpay_payment_id=?
 //          WHERE user_id=?`,
 //         [

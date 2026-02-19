@@ -5,7 +5,7 @@ exports.getOffers = async () => {
   return await withConnection(async (connection) => {
     const query = `
       SELECT offer_text1, offer_text2, offer_text3, offer_text4 
-      FROM gauswarn_offers 
+      FROM rajlaksmi_offers 
       ORDER BY offer_id DESC LIMIT 1
     `;
     const [rows] = await connection.execute(query);
@@ -28,7 +28,7 @@ exports.getOffers = async () => {
 exports.updateOffers = async (offerData) => {
   return await withConnection(async (connection) => {
     const query = `
-      INSERT INTO gauswarn_offers (offer_text1, offer_text2, offer_text3, offer_text4) 
+      INSERT INTO rajlaksmi_offers (offer_text1, offer_text2, offer_text3, offer_text4) 
       VALUES (?, ?, ?, ?) 
       ON DUPLICATE KEY UPDATE 
       offer_text1 = VALUES(offer_text1),

@@ -1,7 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const registerModel = require("../../model/admin/registerModel");
 const bcrypt = require("bcryptjs");
-const authMiddleware = require("../../middlewares/authMiddleware");
 
 exports.adminUserRegister = asyncHandler(async (req, res) => {
   const { full_name, email, mobile_number, password, role,permissions } = req.body;

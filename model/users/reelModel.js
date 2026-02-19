@@ -3,7 +3,7 @@ const { withConnection } = require("../../utils/helper");
 // exports.addReel = async (title, description, videoUrl, thumbUrl) => {
 //   return await withConnection(async (connection) => {
 //     const query = `
-//       INSERT INTO gauswarn_reels (title, description, video_url, thumb_url)
+//       INSERT INTO rajlaksmi_reels (title, description, video_url, thumb_url)
 //       VALUES (?, ?, ?, ?)
 //     `;
 //     const [result] = await connection.execute(query, [
@@ -19,7 +19,7 @@ const { withConnection } = require("../../utils/helper");
 
 // exports.getAllReels = async () => {
 //   return await withConnection(async (connection) => {
-//     const query = "SELECT * FROM gauswarn_reels ORDER BY id DESC";
+//     const query = "SELECT * FROM rajlaksmi_reels ORDER BY id DESC";
 //     const [rows] = await connection.execute(query);
 //     return rows;
 //   });
@@ -27,7 +27,7 @@ const { withConnection } = require("../../utils/helper");
 
 // exports.getReelById = async (id) => {
 //   return await withConnection(async (connection) => {
-//     const query = "SELECT * FROM gauswarn_reels WHERE id = ?";
+//     const query = "SELECT * FROM rajlaksmi_reels WHERE id = ?";
 //     const [rows] = await connection.execute(query, [id]);
 //     return rows[0] || null;
 //   });
@@ -35,7 +35,7 @@ const { withConnection } = require("../../utils/helper");
 
 // exports.deleteReel = async (id) => {
 //   return await withConnection(async (connection) => {
-//     const query = "DELETE FROM gauswarn_reels WHERE id = ?";
+//     const query = "DELETE FROM rajlaksmi_reels WHERE id = ?";
 //     await connection.execute(query, [id]);
 //     return true;
 //   });
@@ -43,7 +43,7 @@ const { withConnection } = require("../../utils/helper");
 
 // exports.deleteAllReels = async () => {
 //   return await withConnection(async (connection) => {
-//     const query = "DELETE FROM gauswarn_reels";
+//     const query = "DELETE FROM rajlaksmi_reels";
 //     await connection.execute(query);
 //     return true;
 //   });
@@ -52,7 +52,7 @@ const { withConnection } = require("../../utils/helper");
 // exports.updateReelDB = async (id, data) => {
 //   return await withConnection(async (connection) => {
 //     const query = `
-//       UPDATE gauswarn_reels
+//       UPDATE rajlaksmi_reels
 //       SET title = ?, description = ?, video_url = ?, thumb_url = ?
 //       WHERE id = ?
 //     `;
@@ -70,7 +70,7 @@ const { withConnection } = require("../../utils/helper");
 exports.addReel = async (reelId) => {
   return await withConnection(async (connection) => {
     const query = `
-      INSERT INTO gauswarn_reels_instagram (reel_id)
+      INSERT INTO rajlaksmi_reels_instagram (reel_id)
       VALUES (?)
     `;
     const [result] = await connection.execute(query, [reelId]);
@@ -80,7 +80,7 @@ exports.addReel = async (reelId) => {
 
 exports.getAllReels = async () => {
   return withConnection(async (connection) => {
-    const query = "SELECT * FROM gauswarn_reels_instagram ORDER BY id DESC";
+    const query = "SELECT * FROM rajlaksmi_reels_instagram ORDER BY id DESC";
     const [rows] = await connection.execute(query);
     return rows;
   });
@@ -88,7 +88,7 @@ exports.getAllReels = async () => {
 
 exports.getReelById = async (id) => {
   return withConnection(async (connection) => {
-    const query = "SELECT * FROM gauswarn_reels_instagram WHERE id = ?";
+    const query = "SELECT * FROM rajlaksmi_reels_instagram WHERE id = ?";
     const [rows] = await connection.execute(query, [id]);
     return rows[0] || null;
   });
@@ -97,7 +97,7 @@ exports.getReelById = async (id) => {
 exports.deleteReel = async (id) => {
   return withConnection(async (connection) => {
     await connection.execute(
-      "DELETE FROM gauswarn_reels_instagram WHERE id = ?",
+      "DELETE FROM rajlaksmi_reels_instagram WHERE id = ?",
       [id]
     );
     return true;

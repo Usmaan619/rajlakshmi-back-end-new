@@ -8,7 +8,7 @@ exports.create = async (data) => {
   try {
     return await withConnection(async (conn) => {
       const sql = `
-        INSERT INTO gauswarn_inquiries 
+        INSERT INTO rajlaksmi_inquiries 
         (full_name, business_name, phone, email, business_type, monthly_requirement, message, status) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `;
@@ -75,14 +75,14 @@ exports.create = async (data) => {
 //       }
 
 //       const sql = `
-//         SELECT * FROM gauswarn_inquiries
+//         SELECT * FROM rajlaksmi_inquiries
 //         ${where}
 //         ORDER BY created_at DESC
 //         LIMIT ? OFFSET ?
 //       `;
 
 //       const countSql = `
-//         SELECT COUNT(*) as total FROM gauswarn_inquiries ${where}
+//         SELECT COUNT(*) as total FROM rajlaksmi_inquiries ${where}
 //       `;
 
 //       const [rows] = await conn.execute(sql, [...params, limit, offset]);
@@ -95,11 +95,11 @@ exports.create = async (data) => {
 //     });
 //   } catch (error) {
 //     console.error(
-//       " Error in getAll gauswarn_inquiries:",
+//       " Error in getAll rajlaksmi_inquiries:",
 //       error.message,
 //       moment().format("YYYY-MM-DD HH:mm:ss")
 //     );
-//     throw new Error("Unable to fetch gauswarn_inquiries");
+//     throw new Error("Unable to fetch rajlaksmi_inquiries");
 //   }
 // };
 
@@ -139,7 +139,7 @@ exports.getAll = async ({ page, limit, search, status }) => {
 
     const sql = `
       SELECT *
-      FROM gauswarn_inquiries
+      FROM rajlaksmi_inquiries
       ${where}
       ORDER BY created_at DESC
       LIMIT ${limit} OFFSET ${offset}
@@ -147,7 +147,7 @@ exports.getAll = async ({ page, limit, search, status }) => {
 
     const countSql = `
       SELECT COUNT(*) AS total
-      FROM gauswarn_inquiries
+      FROM rajlaksmi_inquiries
       ${where}
     `;
 
@@ -167,7 +167,7 @@ exports.getAll = async ({ page, limit, search, status }) => {
 exports.getById = async (id) => {
   try {
     return await withConnection(async (conn) => {
-      const sql = "SELECT * FROM gauswarn_inquiries WHERE id = ?";
+      const sql = "SELECT * FROM rajlaksmi_inquiries WHERE id = ?";
       const [rows] = await conn.execute(sql, [id]);
       return rows[0];
     });
@@ -188,7 +188,7 @@ exports.getById = async (id) => {
 //   try {
 //     return await withConnection(async (conn) => {
 //       const sql = `
-//         UPDATE gauswarn_inquiries SET
+//         UPDATE rajlaksmi_inquiries SET
 //           full_name = ?,
 //           business_name = ?,
 //           phone = ?,
@@ -238,7 +238,7 @@ exports.update = async (id, data) => {
       }
 
       const sql = `
-        UPDATE gauswarn_inquiries 
+        UPDATE rajlaksmi_inquiries 
         SET ${fields.join(", ")}
         WHERE id = ?
       `;
@@ -261,7 +261,7 @@ exports.update = async (id, data) => {
 exports.delete = async (id) => {
   try {
     return await withConnection(async (conn) => {
-      const sql = "DELETE FROM gauswarn_inquiries WHERE id = ?";
+      const sql = "DELETE FROM rajlaksmi_inquiries WHERE id = ?";
       const [result] = await conn.execute(sql, [id]);
 
       return result.affectedRows; // returns 1 if deleted

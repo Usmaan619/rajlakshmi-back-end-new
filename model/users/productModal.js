@@ -13,7 +13,7 @@ exports.addProduct = async (
   try {
     return await withConnection(async (connection) => {
       const query = `
-        INSERT INTO gauswarn_product 
+        INSERT INTO rajlaksmi_product 
         (product_id, product_name, product_price, product_weight, product_purchase_price, product_del_price, product_images)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `;
@@ -37,7 +37,7 @@ exports.addProduct = async (
 exports.getAllProducts = async () => {
   try {
     return await withConnection(async (connection) => {
-      const query = `SELECT * FROM gauswarn_product`;
+      const query = `SELECT * FROM rajlaksmi_product`;
       const [products] = await connection.execute(query);
       return products;
     });
@@ -50,7 +50,7 @@ exports.getAllProducts = async () => {
 exports.getProductById = async (id) => {
   try {
     return await withConnection(async (connection) => {
-      const query = "SELECT * FROM gauswarn_product WHERE id = ?";
+      const query = "SELECT * FROM rajlaksmi_product WHERE id = ?";
       const [product] = await connection.execute(query, [id]);
       return product.length > 0 ? product[0] : null;
     });
@@ -72,7 +72,7 @@ exports.updateProduct = async (
   try {
     return await withConnection(async (connection) => {
       const query = `
-        UPDATE gauswarn_product
+        UPDATE rajlaksmi_product
         SET product_name = ?, product_price = ?, product_weight = ?, product_purchase_price = ?, product_del_price = ?, product_images = ?
         WHERE product_id = ?
       `;
@@ -96,7 +96,7 @@ exports.updateProduct = async (
 exports.getProductByProductId = async (product_id) => {
   return await withConnection(async (connection) => {
     const query = `
-      SELECT * FROM gauswarn_product WHERE product_id = ?
+      SELECT * FROM rajlaksmi_product WHERE product_id = ?
     `;
     const [rows] = await connection.execute(query, [product_id]);
     return rows.length ? rows[0] : null;
@@ -107,7 +107,7 @@ exports.getProductByProductId = async (product_id) => {
 exports.deleteProduct = async (product_id) => {
   try {
     return await withConnection(async (connection) => {
-      const query = "DELETE FROM gauswarn_product WHERE product_id = ?";
+      const query = "DELETE FROM rajlaksmi_product WHERE product_id = ?";
       const [result] = await connection.execute(query, [product_id]);
       return result.affectedRows > 0;
     });
@@ -126,7 +126,7 @@ exports.updateProductPrices = async (
   try {
     return await withConnection(async (connection) => {
       const query = `
-        UPDATE gauswarn_product
+        UPDATE rajlaksmi_product
         SET product_price = ?, product_purchase_price = ?, product_del_price = ?,  product_weight = ?
         WHERE product_id = ?
       `;
@@ -147,7 +147,7 @@ exports.updateProductPrices = async (
 exports.updateProductImages = async (product_id, images) => {
   return await withConnection(async (conn) => {
     const query = `
-      UPDATE gauswarn_product 
+      UPDATE rajlaksmi_product 
       SET product_images = ?
       WHERE product_id = ?
     `;
