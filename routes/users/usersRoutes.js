@@ -11,10 +11,7 @@ const {
   exportTableToExcel,
 } = require("../../controllers/users/excelController");
 const { errorHandler } = require("../../middlewares/errorHandler");
-const {
-  createPaymentAndGenerateUrl,
-  getPhonePeUrlStatusAndUpdatePayment,
-} = require("../../controllers/users/paymentControllers");
+
 const {
   createPaymentAndGenerateUrlRazor,
   getRazorpayStatusAndUpdatePayment,
@@ -74,11 +71,6 @@ router.post("/updateb2bInquiry/:id", updateInquiry);
 router.delete("/deleteb2bInquiry/:id", deleteInquiry);
 
 // ** B2B Inquiry end  *//
-
-// phonePe routes
-// router.post("/create-order", createPaymentAndGenerateUrl);
-// router.post("/status", getPhonePeUrlStatusAndUpdatePayment);
-
 // razorpay
 router.post("/create-order", createPaymentAndGenerateUrlRazor);
 router.post("/status", getRazorpayStatusAndUpdatePayment);

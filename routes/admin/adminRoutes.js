@@ -14,7 +14,7 @@ const userInfoController = require("../../controllers/admin/userInfoController")
 const monthlyReportController = require("../../controllers/admin/monthlyReportController");
 
 // Gauswarn
-const productControllerGauswarn = require("../../controllers/users/productController");
+const productController = require("../../controllers/users/productController");
 const feedbackGauswarnController = require("../../controllers/users/feedbackController");
 const contactControllerGauswarn = require("../../controllers/users/contactController");
 const imageUploadControllerGauswarn = require("../../controllers/users/uploadController");
@@ -87,16 +87,13 @@ router.post(
 // Gauswarn Routes
 // ----------------------------
 // Products
-router.post("/createProductGauswarn", productControllerGauswarn.addProduct);
+router.post("/createProductGauswarn", productController.addProduct);
 router.post(
   "/updateGauswarnProductById",
-  productControllerGauswarn.updateProductPrices,
+  productController.updateProductPrices,
 );
-router.post(
-  "/deleteGauswarnProductById",
-  productControllerGauswarn.deleteProduct,
-);
-router.get("/gauswarnGetAllProduct", productControllerGauswarn.getAllProducts);
+router.post("/deleteGauswarnProductById", productController.deleteProduct);
+router.get("/get_all_products", productController.getAllProducts);
 
 // Feedback (auth-protected)
 router.get(
@@ -148,13 +145,13 @@ router.post(
 router.post(
   "/add-images",
   upload.array("images", 10),
-  productControllerGauswarn.addProductImages,
+  productController.addProductImages,
 );
 
 router.post(
   "/replace-image",
   upload.single("image"),
-  productControllerGauswarn.replaceProductImage,
+  productController.replaceProductImage,
 );
 
 router.post("/banner-signature", homeBannerControllerGauswarn.getSignature);

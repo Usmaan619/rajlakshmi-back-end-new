@@ -1,4 +1,4 @@
-const cloudinary = require("../../config/cloudinary");
+const imagekit = require("../../config/imagekit");
 const {
   getAllBanners,
   getBannerSlot,
@@ -7,8 +7,6 @@ const {
 } = require("../../model/users/homeBannerModel");
 
 const { uploadBufferToS3, deleteFromS3 } = require("../../service/uploadFile");
-
-// const cloudinary = require("");
 
 // GET all banners
 exports.getHomeBanners = async (req, res) => {
@@ -42,15 +40,19 @@ exports.updateHomeBanner = async (req, res) => {
     // Get old banner
     const oldBanner = await getBannerSlot(slot);
 
-    // Upload new file
+    // Upload new file to ImageKit
     const newUrl = await uploadBufferToS3(file.buffer, file.mimetype);
 
-    // Delete old S3 file
+    // Delete old image (non-critical — purana Cloudinary URL ho toh skip hoga)
     if (oldBanner) {
-      await deleteFromS3(oldBanner);
+      try {
+        await deleteFromS3(oldBanner);
+      } catch (delErr) {
+        console.log("Old banner delete skipped:", delErr.message);
+      }
     }
 
-    // Update DB
+    // Update DB with new ImageKit URL
     await updateBannerSlot(slot, newUrl);
 
     return res.json({
@@ -63,24 +65,20 @@ exports.updateHomeBanner = async (req, res) => {
   }
 };
 
+// ImageKit auth token for frontend direct uploads
 exports.getSignature = async (req, res) => {
-  const { folder, timestamp } = req.body;
-
-  const signature = cloudinary.utils.api_sign_request(
-    {
-      folder,
-      timestamp: parseInt(timestamp),
-    },
-    process.env.CLOUDINARY_API_SECRET,
-  );
-
-  res.json({
-    signature,
-    timestamp,
-    folder,
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-  });
+  try {
+    const authParams = imagekit.helper.getAuthenticationParameters();
+    res.json({
+      token: authParams.token,
+      expire: authParams.expire,
+      signature: authParams.signature,
+      publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+      urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
 };
 
 // In homeBannerController.js - add this NEW endpoint

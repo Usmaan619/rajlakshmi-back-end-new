@@ -1,149 +1,92 @@
-// const cloudinary = require("../config/cloudinary");
-// const { v4: uuid } = require("uuid");
+const imagekit = require("../config/imagekit");
 
-// // ===================== DELETE (by URL) =====================
-// exports.deleteFromS3 = async (fileUrl) => {
-//   try {
-//     if (!fileUrl) return;
-
-//     // Extract publicId from URL
-//     const parts = fileUrl.split("/");
-//     const filename = parts.pop().split(".")[0];
-//     const folder = parts.pop();
-//     const publicId = `${folder}/${filename}`;
-
-//     await cloudinary.uploader.destroy(publicId);
-
-//     console.log("Old image deleted:", publicId);
-//   } catch (err) {
-//     console.log("Delete error:", err.message);
-//   }
-// };
-
-// // ===================== uploadProductImage =====================
-// exports.uploadProductImage = async (buffer, mimetype, product_id) => {
-//   return uploadToFolder(buffer, `products/${product_id}`);
-// };
-
-// // ===================== uploadBufferToS3 =====================
-// exports.uploadBufferToS3 = async (buffer, mimetype) => {
-//   return uploadToFolder(buffer, "uploads");
-// };
-
-// // ===================== uploadBase64ToS3 =====================
-// exports.uploadBase64ToS3 = async (base64String) => {
-//   const res = await cloudinary.uploader.upload(base64String, {
-//     folder: "uploads",
-//     resource_type: "auto",
-//   });
-
-//   return res.secure_url;
-// };
-
-// // ===================== uploadMultipleBuffersToS3 =====================
-// exports.uploadMultipleBuffersToS3 = async (files) => {
-//   return Promise.all(
-//     files.map((file) => uploadToFolder(file.buffer, "uploads"))
-//   );
-// };
-
-// // ===================== uploadBufferAndReelsToS3 =====================
-// exports.uploadBufferAndReelsToS3 = async (buffer, mimetype) => {
-//   return uploadToFolder(buffer, "reels");
-// };
-
-// // ===================== uploadBufferAndBlogsToS3 =====================
-// exports.uploadBufferAndBlogsToS3 = async (buffer, mimetype) => {
-//   return uploadToFolder(buffer, "blogs");
-// };
-
-// // ===================== CORE uploader (stream) =====================
-// async function uploadToFolder(buffer, folder) {
-//   return new Promise((resolve, reject) => {
-//     cloudinary.uploader
-//       .upload_stream(
-//         {
-//           folder,
-//           resource_type: "auto",
-//         },
-//         (err, result) => {
-//           if (err) return reject(err);
-
-//           resolve(result.secure_url);
-//         }
-//       )
-//       .end(buffer);
-//   });
-// }
-const cloudinary = require("../config/cloudinary");
-const { v4: uuid } = require("uuid");
-
-// deleteFromS3 -> Cloudinary
+// ===================== DELETE (by ImageKit URL) =====================
 exports.deleteFromS3 = async (fileUrl) => {
   try {
-    if (!fileUrl) return;
+    if (!fileUrl || typeof fileUrl !== "string") return;
 
-    const parts = fileUrl.split("/");
-    const filename = parts.pop().split(".")[0];
-    const folder = parts.pop();
-    const publicId = `${folder}/${filename}`;
+    // Sirf ImageKit URLs ko process karo
+    if (!fileUrl.includes("ik.imagekit.io")) {
+      console.log("Skipping delete for non-ImageKit URL:", fileUrl);
+      return;
+    }
 
-    await cloudinary.uploader.destroy(publicId);
+    // URL se filename extract karo
+    let urlObj;
+    try {
+      urlObj = new URL(fileUrl);
+    } catch {
+      console.log("Invalid URL format, skipping delete:", fileUrl);
+      return;
+    }
+
+    const pathParts = urlObj.pathname.split("/").filter(Boolean);
+    const fileName = pathParts[pathParts.length - 1];
+
+    // ImageKit mein search karke fileId se delete karo
+    const result = await imagekit.assets.list({
+      searchQuery: `name="${fileName}"`,
+    });
+
+    const files = result?.data || result || [];
+    if (files.length > 0) {
+      await imagekit.files.delete(files[0].fileId);
+      console.log("Old image deleted from ImageKit:", fileName);
+    } else {
+      console.log("File not found in ImageKit, skipping delete:", fileName);
+    }
   } catch (err) {
-    console.log("Delete error:", err.message);
+    // Delete fail ho toh bhi upload continue kare — critical error nahi hai
+    console.log("Delete error (non-fatal):", err.message);
   }
 };
 
-// uploadBufferToS3
+// ===================== uploadBufferToS3 =====================
 exports.uploadBufferToS3 = async (buffer, mimetype) => {
-  return uploadToCloudinary(buffer, "uploads");
+  return uploadToImageKit(buffer, "uploads");
 };
 
-// uploadProductImage
+// ===================== uploadProductImage =====================
 exports.uploadProductImage = async (buffer, mimetype, product_id) => {
-  return uploadToCloudinary(buffer, `products/${product_id}`);
+  return uploadToImageKit(buffer, `products/${product_id}`);
 };
 
-// uploadBufferAndReelsToS3
+// ===================== uploadBufferAndReelsToS3 =====================
 exports.uploadBufferAndReelsToS3 = async (buffer, mimetype) => {
-  return uploadToCloudinary(buffer, "reels");
+  return uploadToImageKit(buffer, "reels");
 };
 
-// uploadBufferAndBlogsToS3
+// ===================== uploadBufferAndBlogsToS3 =====================
 exports.uploadBufferAndBlogsToS3 = async (buffer, mimetype) => {
-  return uploadToCloudinary(buffer, "blogs");
+  return uploadToImageKit(buffer, "blogs");
 };
 
-// uploadMultipleBuffersToS3
+// ===================== uploadMultipleBuffersToS3 =====================
 exports.uploadMultipleBuffersToS3 = async (files) => {
   return Promise.all(
-    files.map((file) => uploadToCloudinary(file.buffer, "uploads"))
+    files.map((file) => uploadToImageKit(file.buffer, "uploads")),
   );
 };
 
-// base64
+// ===================== uploadBase64ToS3 =====================
 exports.uploadBase64ToS3 = async (base64) => {
-  const result = await cloudinary.uploader.upload(base64, {
+  const result = await imagekit.files.upload({
+    file: base64,
+    fileName: `upload_${Date.now()}`,
     folder: "uploads",
-    resource_type: "auto",
+    useUniqueFileName: true,
   });
-  return result.secure_url;
+  return result.url;
 };
 
-// core
-function uploadToCloudinary(buffer, folder) {
-  return new Promise((resolve, reject) => {
-    cloudinary.uploader
-      .upload_stream(
-        {
-          folder,
-          resource_type: "auto",
-        },
-        (err, result) => {
-          if (err) return reject(err);
-          resolve(result.secure_url);
-        }
-      )
-      .end(buffer);
+// ===================== CORE uploader =====================
+async function uploadToImageKit(buffer, folder) {
+  const base64 = buffer.toString("base64");
+  const result = await imagekit.files.upload({
+    file: base64,
+    fileName: `img_${Date.now()}`,
+    folder: folder,
+    useUniqueFileName: true,
   });
+  return result.url;
 }
