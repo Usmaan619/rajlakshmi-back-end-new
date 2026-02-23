@@ -33,16 +33,18 @@ const createEmailTransporter = async () => {
 // };
 
 const withConnection = async (callback) => {
-  const connection = await connectToDatabase(); // Assume this establishes a DB connection
+  const connection = await connectToDatabase(); // Borrow a connection from the pool
   try {
     return await callback(connection);
   } catch (err) {
     console.error("Error in withConnection:---------------------", err);
-    connection.destroy(); // Destroy the connection if an error occurs
     throw err; // Rethrow the error for higher-level handling
   } finally {
-    if (connection && connection.state !== "disconnected") {
-      connection.end(); // Gracefully end the connection if no errors occurred
+    // Always release back to the pool — never call .end() on a pool connection
+    try {
+      connection.release();
+    } catch (_) {
+      // ignore release errors
     }
   }
 };

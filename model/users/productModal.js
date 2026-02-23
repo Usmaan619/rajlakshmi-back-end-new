@@ -31,23 +31,33 @@ exports.addProduct = async (data) => {
           is_active,
           product_stock,
           product_images,
-          category_name
+          category_name,
+          category_id
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       const values = [
-        data.product_name,
-        data.product_price,
-        JSON.stringify(data.product_weight),
-        data.product_purchase_price,
-        data.product_del_price,
-        data.is_featured || 0,
-        data.is_active || 1,
-        data.product_stock || 0,
-        JSON.stringify(data.product_images),
-        data.category_name,
+        data.product_name ?? null,
+        data.product_price ?? null,
+        JSON.stringify(data.product_weight ?? []),
+        data.product_purchase_price ?? null,
+        data.product_del_price ?? null,
+        data.is_featured ?? 0,
+        data.is_active ?? 1,
+        data.product_stock ?? 0,
+        JSON.stringify(data.product_images ?? []),
+        data.category_name ?? null,
+        data.category_id ?? null,
       ];
+
+      // Catch any remaining undefined before MySQL2 does
+      const undefinedField = values.findIndex((v) => v === undefined);
+      if (undefinedField !== -1) {
+        throw new Error(
+          `addProduct: value at index ${undefinedField} is undefined`,
+        );
+      }
 
       const [result] = await connection.execute(query, values);
 
@@ -75,6 +85,9 @@ exports.getAllProducts = async () => {
 
 // Get Single Product by ID
 exports.getProductById = async (id) => {
+  if (id === undefined || id === null) {
+    throw new Error("getProductById: id must not be undefined or null");
+  }
   return await withConnection(async (connection) => {
     const [rows] = await connection.execute(
       `SELECT * FROM rajlaksmi_product WHERE id=?`,
@@ -92,7 +105,7 @@ exports.getProductById = async (id) => {
   });
 };
 
-// Update Product
+// Update Product (does NOT touch product_images — use updateProductImages() for that)
 exports.updateProduct = async (id, data) => {
   return await withConnection(async (connection) => {
     const query = `
@@ -106,24 +119,32 @@ exports.updateProduct = async (id, data) => {
         is_featured = ?,
         is_active = ?,
         product_stock = ?,
-        product_images = ?,
-        category_name = ?
+        category_name = ?,
+        category_id = ?
       WHERE id = ?
     `;
 
     const values = [
-      data.product_name,
-      data.product_price,
-      JSON.stringify(data.product_weight),
-      data.product_purchase_price,
-      data.product_del_price,
-      data.is_featured,
-      data.is_active,
-      data.product_stock,
-      JSON.stringify(data.product_images),
-      data.category_name,
+      data.product_name ?? null,
+      data.product_price ?? null,
+      JSON.stringify(data.product_weight ?? []),
+      data.product_purchase_price ?? null,
+      data.product_del_price ?? null,
+      data.is_featured ?? null,
+      data.is_active ?? null,
+      data.product_stock ?? null,
+      data.category_name ?? null,
+      data.category_id ?? null,
       id,
     ];
+
+    // Catch any remaining undefined before MySQL2 does
+    const undefinedField = values.findIndex((v) => v === undefined);
+    if (undefinedField !== -1) {
+      throw new Error(
+        `updateProduct: value at index ${undefinedField} is undefined`,
+      );
+    }
 
     const [res] = await connection.execute(query, values);
 
@@ -142,15 +163,15 @@ exports.deleteProduct = async (id) => {
   });
 };
 
-exports.updateProductImages = async (product_id, images) => {
+exports.updateProductImages = async (id, images) => {
   return await withConnection(async (conn) => {
     const query = `
       UPDATE rajlaksmi_product 
       SET product_images = ?
-      WHERE product_id = ?
+      WHERE id = ?
     `;
 
-    const [res] = await conn.execute(query, [images, product_id]);
+    const [res] = await conn.execute(query, [images, id]);
     return res.affectedRows > 0;
   });
 };

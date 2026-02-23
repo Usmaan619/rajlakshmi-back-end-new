@@ -10,6 +10,7 @@ const port = process.env.PORT || 5000;
 const { connectToDatabase } = require("./config/dbConnection");
 const metaFeedRoute = require("./routes/users/metaFeed");
 const productsRoutes = require("./routes/users/productRoutes");
+const categoryRoutes = require("./routes/users/category.routes");
 
 // Middlewares
 app.use(cors());
@@ -30,6 +31,8 @@ app.use("/users", usersRoutes);
 
 app.use("/admin", adminRoutes);
 app.use("/products", productsRoutes);
+
+app.use("/category", categoryRoutes);
 
 app.use("/", metaFeedRoute);
 

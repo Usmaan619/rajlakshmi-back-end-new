@@ -9,18 +9,16 @@ exports.addCategory = async (data) => {
         category_name,
         category_slug,
         category_description,
-        category_image,
         is_featured,
         is_active
       )
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?)
     `;
 
     const values = [
       data.category_name,
       data.category_slug,
       data.category_description,
-      data.category_image,
       data.is_featured || 0,
       data.is_active || 1,
     ];
@@ -63,7 +61,6 @@ exports.updateCategory = async (id, data) => {
         category_name=?,
         category_slug=?,
         category_description=?,
-        category_image=?,
         is_featured=?,
         is_active=?
       WHERE id=?
@@ -73,7 +70,6 @@ exports.updateCategory = async (id, data) => {
       data.category_name,
       data.category_slug,
       data.category_description,
-      data.category_image,
       data.is_featured,
       data.is_active,
       id,

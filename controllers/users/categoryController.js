@@ -1,5 +1,4 @@
-const categoryModel = require("../../model/users/category.model");
-const { uploadProductImage } = require("../../service/uploadFile");
+const categoryModel = require("../../model/users/categoryModel");
 
 // SLUG GENERATOR
 const slugify = (text) => {
@@ -21,21 +20,10 @@ exports.addCategory = async (req, res) => {
       });
     }
 
-    let imageURL = null;
-
-    if (req.file) {
-      imageURL = await uploadProductImage(
-        req.file.buffer,
-        req.file.mimetype,
-        Date.now(),
-      );
-    }
-
     const data = {
       category_name,
       category_slug: slugify(category_name),
       category_description,
-      category_image: imageURL,
       is_featured,
       is_active,
     };
@@ -83,15 +71,6 @@ exports.updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
     const body = req.body;
-
-    if (req.file) {
-      const img = await uploadProductImage(
-        req.file.buffer,
-        req.file.mimetype,
-        Date.now(),
-      );
-      body.category_image = img;
-    }
 
     body.category_slug = slugify(body.category_name);
 
