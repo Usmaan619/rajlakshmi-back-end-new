@@ -43,6 +43,7 @@ const topBannerOfferController = require("../../controllers/users/topBannerOffer
 // ----------------------------
 router.post("/register", registerController.adminUserRegister);
 router.post("/login", loginController.adminUserLogin);
+router.post("/google-login", loginController.googleLogin);
 
 router.post("/forgetPassword", forgotPasswordController.forgetPassword);
 router.post("/reset", forgotPasswordController.passwordReset);

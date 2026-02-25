@@ -12,6 +12,8 @@ const metaFeedRoute = require("./routes/users/metaFeed");
 const productsRoutes = require("./routes/users/productRoutes");
 const categoryRoutes = require("./routes/users/category.routes");
 const blogRoutes = require("./routes/users/blogRoutes");
+const checkoutRoutes = require("./routes/users/checkoutRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 // Middlewares
 app.use(cors());
@@ -35,6 +37,8 @@ app.use("/products", productsRoutes);
 
 app.use("/category", categoryRoutes);
 app.use("/blogs", blogRoutes);
+app.use("/checkout", checkoutRoutes);
+app.use("/auth", authRoutes);
 
 app.use("/", metaFeedRoute);
 
