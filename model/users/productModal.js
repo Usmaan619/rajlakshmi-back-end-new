@@ -12,8 +12,29 @@ const safeJsonParse = (value, fallback = []) => {
   try {
     return JSON.parse(value);
   } catch {
-    return [value]; // plain string → wrap so callers always get an array
+    return [value];
   }
+};
+
+const mapProduct = (product) => {
+  const images = safeJsonParse(product.product_images);
+  const weight = safeJsonParse(product.product_weight);
+
+  // Calculate discount if possible
+  let discount = product.discount || 0;
+  if (!discount && product.product_price && product.product_del_price) {
+    const diff = product.product_del_price - product.product_price;
+    if (diff > 0) {
+      discount = Math.round((diff / product.product_del_price) * 100);
+    }
+  }
+
+  return {
+    ...product,
+    product_images: images,
+    product_weight: weight,
+    discount,
+  };
 };
 
 exports.addProduct = async (data) => {
@@ -75,11 +96,7 @@ exports.getAllProducts = async () => {
 
     const [rows] = await connection.execute(query);
 
-    return rows.map((product) => ({
-      ...product,
-      product_images: safeJsonParse(product.product_images),
-      product_weight: safeJsonParse(product.product_weight),
-    }));
+    return rows.map(mapProduct);
   });
 };
 
@@ -98,10 +115,7 @@ exports.getProductById = async (id) => {
 
     const product = rows[0];
 
-    product.product_images = safeJsonParse(product.product_images);
-    product.product_weight = safeJsonParse(product.product_weight);
-
-    return product;
+    return mapProduct(product);
   });
 };
 
@@ -192,11 +206,7 @@ exports.getHomePageProducts = async () => {
 
     const [rows] = await connection.execute(query);
 
-    return rows.map((product) => ({
-      ...product,
-      product_images: safeJsonParse(product.product_images),
-      product_weight: safeJsonParse(product.product_weight),
-    }));
+    return rows.map(mapProduct);
   });
 };
 
@@ -211,10 +221,6 @@ exports.getProductsByCategory = async (category_name) => {
 
     const [rows] = await connection.execute(query, [category_name]);
 
-    return rows.map((product) => ({
-      ...product,
-      product_images: safeJsonParse(product.product_images),
-      product_weight: safeJsonParse(product.product_weight),
-    }));
+    return rows.map(mapProduct);
   });
 };
