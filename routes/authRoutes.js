@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/users/authController");
+const { authMiddleware } = require("../middlewares/authMiddleware");
 
 // User Login Route
 router.post("/login", authController.userLogin);
@@ -16,5 +17,8 @@ router.post("/forgot-password", authController.forgotPassword);
 
 // Reset Password Route
 router.post("/reset-password", authController.resetPassword);
+
+// Update Profile Route
+router.put("/update-profile", authMiddleware, authController.updateUserProfile);
 
 module.exports = router;

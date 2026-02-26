@@ -131,3 +131,26 @@ exports.resetPassword = async (email, otp, hashedPassword) => {
     throw error;
   }
 };
+
+exports.updateUser = async (userId, updateData) => {
+  try {
+    return await withConnection(async (connection) => {
+      const { full_name, mobile_number, profile_image } = updateData;
+      const query = `
+        UPDATE rajlaxmi_user_new 
+        SET full_name = ?, mobile_number = ?, profile_image = ? 
+        WHERE id = ?
+      `;
+      const [result] = await connection.execute(query, [
+        full_name,
+        mobile_number,
+        profile_image,
+        userId,
+      ]);
+      return result.affectedRows > 0;
+    });
+  } catch (error) {
+    console.log("updateUser error: ", error);
+    throw error;
+  }
+};

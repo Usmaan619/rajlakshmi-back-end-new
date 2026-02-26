@@ -82,8 +82,10 @@ exports.userLogin = asyncHandler(async (req, res) => {
         id: user.id,
         email: user.email,
         name: user.full_name,
+        full_name: user.full_name,
         profile_image: user.profile_image,
         role: user.role,
+        mobile_number: user.mobile_number,
         permissions: user.permissions ? JSON.parse(user.permissions) : [],
       },
     });
@@ -154,6 +156,7 @@ exports.googleLogin = asyncHandler(async (req, res) => {
         id: user.id,
         email: user.email,
         name: user.full_name,
+        full_name: user.full_name,
         profile_image: user.profile_image,
         role: user.role,
         permissions: user.permissions ? JSON.parse(user.permissions) : [],
@@ -236,6 +239,7 @@ exports.userSignup = asyncHandler(async (req, res) => {
         id: user.id,
         email: user.email,
         name: user.full_name,
+        full_name: user.full_name,
         profile_image: user.profile_image,
         role: user.role,
         permissions: user.permissions ? JSON.parse(user.permissions) : [],
@@ -307,6 +311,42 @@ exports.resetPassword = asyncHandler(async (req, res) => {
       message: msg ? msg.message : "Password reset successfully",
     });
   } catch (error) {
+    res.json({ success: false, message: "Server error" });
+  }
+});
+
+// Update User Profile
+exports.updateUserProfile = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+  const { full_name, mobile_number, profile_image } = req.body;
+
+  try {
+    const success = await userModel.updateUser(userId, {
+      full_name,
+      mobile_number,
+      profile_image,
+    });
+
+    if (success) {
+      const updatedUser = await userModel.findUserByEmail(req.user.email);
+      res.json({
+        success: true,
+        message: "Profile updated successfully.",
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          name: updatedUser.full_name,
+          full_name: updatedUser.full_name, // for consistency
+          profile_image: updatedUser.profile_image,
+          mobile_number: updatedUser.mobile_number,
+          role: updatedUser.role,
+        },
+      });
+    } else {
+      res.json({ success: false, message: "Failed to update profile." });
+    }
+  } catch (error) {
+    console.error("updateUserProfile error: ", error);
     res.json({ success: false, message: "Server error" });
   }
 });
