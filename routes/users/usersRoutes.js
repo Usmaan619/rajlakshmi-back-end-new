@@ -43,6 +43,12 @@ router.post("/feedback", feedbackController.feedback);
 // Route to fetch all reviews
 router.get("/allfeedback", feedbackController.getReviews);
 
+// Route to fetch reviews for specific product
+router.get(
+  "/productfeedback/:product_id",
+  feedbackController.getFeedbackByProduct,
+);
+
 // fetch single feedback by Id
 router.post("/getSingleFeedbackById/:id", feedbackController.getReviewById);
 
