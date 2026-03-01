@@ -14,6 +14,9 @@ router.post(
 // Get All Blogs
 router.get("/get-all-blogs", blogController.getAllBlogsController);
 
+// Get Blog Categories
+router.get("/get-categories", blogController.getBlogCategories);
+
 // Get Single Blog by Slug
 router.get("/get-blog/:slug", blogController.getSingleBlogBySlug);
 

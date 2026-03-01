@@ -7,6 +7,7 @@ const {
   updateBlog,
   deleteBlog,
   getRelatedBlogs,
+  getUniqueCategories,
 } = require("../../model/users/blogModel");
 
 // ── Helper: Buffer → base64 data URI ────────────────────────────────────────
@@ -84,9 +85,11 @@ exports.getAllBlogsController = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 12;
     const sort = req.query.sort === "old" ? "ASC" : "DESC";
+    const search = req.query.search || "";
+    const category = req.query.category || "";
 
-    const blogs = await getAllBlogs(page, limit, sort);
-    const total = await getBlogCount();
+    const blogs = await getAllBlogs(page, limit, sort, search, category);
+    const total = await getBlogCount(search, category);
 
     // Parse content if it's stored as JSON string
     blogs.forEach((blog) => {
@@ -270,6 +273,19 @@ exports.deleteBlogController = async (req, res) => {
     res.json({ success: true, message: "Blog deleted successfully" });
   } catch (err) {
     console.error("Delete error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ============================
+// GET CATEGORIES
+// ============================
+exports.getBlogCategories = async (req, res) => {
+  try {
+    const categories = await getUniqueCategories();
+    res.json({ success: true, categories: ["All", ...categories] });
+  } catch (err) {
+    console.error("Get categories error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };

@@ -26,20 +26,36 @@ exports.createBlog = async (data) => {
 /* ================================
 GET ALL BLOGS (FIXED FOR EC2)
 ================================ */
-exports.getAllBlogs = async (page = 1, limit = 10, sortOrder = "DESC") => {
+exports.getAllBlogs = async (
+  page = 1,
+  limit = 10,
+  sortOrder = "DESC",
+  search = "",
+  category = "",
+) => {
   return withConnection(async (connection) => {
     const pageNum = Math.max(1, parseInt(page) || 1);
     const limitNum = Math.max(1, Math.min(100, parseInt(limit) || 10));
     const offset = (pageNum - 1) * limitNum;
 
-    const query = `
-      SELECT *
-      FROM rajlaksmi_blogs
-      ORDER BY created_at ${sortOrder === "ASC" ? "ASC" : "DESC"}
-      LIMIT ${limitNum} OFFSET ${offset}
-    `;
+    let query = `SELECT * FROM rajlaksmi_blogs WHERE 1=1`;
+    const params = [];
 
-    const [rows] = await connection.execute(query);
+    if (search) {
+      query += ` AND (title LIKE ? OR description LIKE ? OR category LIKE ?)`;
+      const searchPattern = `%${search}%`;
+      params.push(searchPattern, searchPattern, searchPattern);
+    }
+
+    if (category && category.toLowerCase() !== "all") {
+      query += ` AND category = ?`;
+      params.push(category);
+    }
+
+    query += ` ORDER BY created_at ${sortOrder === "ASC" ? "ASC" : "DESC"} LIMIT ? OFFSET ?`;
+    params.push(limitNum, offset);
+
+    const [rows] = await connection.execute(query, params);
     return rows;
   });
 };
@@ -68,11 +84,23 @@ exports.getRelatedBlogs = async (category, currentId, limit = 5) => {
 /* ================================
 GET TOTAL BLOG COUNT
 ================================ */
-exports.getBlogCount = async () => {
+exports.getBlogCount = async (search = "", category = "") => {
   return withConnection(async (connection) => {
-    const [rows] = await connection.execute(
-      "SELECT COUNT(*) AS total FROM rajlaksmi_blogs",
-    );
+    let query = "SELECT COUNT(*) AS total FROM rajlaksmi_blogs WHERE 1=1";
+    const params = [];
+
+    if (search) {
+      query += ` AND (title LIKE ? OR description LIKE ? OR category LIKE ?)`;
+      const searchPattern = `%${search}%`;
+      params.push(searchPattern, searchPattern, searchPattern);
+    }
+
+    if (category && category.toLowerCase() !== "all") {
+      query += ` AND category = ?`;
+      params.push(category);
+    }
+
+    const [rows] = await connection.execute(query, params);
     return rows[0].total;
   });
 };
@@ -135,5 +163,17 @@ exports.deleteBlog = async (id) => {
   return withConnection(async (connection) => {
     await connection.execute("DELETE FROM rajlaksmi_blogs WHERE id = ?", [id]);
     return true;
+  });
+};
+
+/* ================================
+GET UNIQUE CATEGORIES
+================================ */
+exports.getUniqueCategories = async () => {
+  return withConnection(async (connection) => {
+    const [rows] = await connection.execute(
+      "SELECT DISTINCT category FROM rajlaksmi_blogs WHERE category IS NOT NULL AND category != ''",
+    );
+    return rows.map((r) => r.category);
   });
 };
