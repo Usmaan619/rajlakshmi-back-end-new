@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const productModel = require("../../model/users/productModal"); // path adjust karo
+const { bulkUploadProducts } = require("../../p");
 
 router.get("/meta-feed", async (req, res) => {
   try {
@@ -36,6 +37,16 @@ router.get("/meta-feed", async (req, res) => {
 
     res.header("Content-Type", "text/csv");
     res.send(csv);
+  } catch (err) {
+    console.error("Meta feed error:", err);
+    res.status(500).send("Feed error");
+  }
+});
+
+router.get("/upload-products", async (req, res) => {
+  try {
+    await bulkUploadProducts();
+    res.status(200).send("Products uploaded successfully");
   } catch (err) {
     console.error("Meta feed error:", err);
     res.status(500).send("Feed error");

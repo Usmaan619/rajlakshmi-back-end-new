@@ -53,9 +53,13 @@ exports.addProduct = async (data) => {
           product_stock,
           product_images,
           category_name,
-          category_id
+          category_id,
+          short_description,
+          full_description,
+          health_benefits,
+          ingredients
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       const values = [
@@ -70,6 +74,10 @@ exports.addProduct = async (data) => {
         JSON.stringify(data.product_images ?? []),
         data.category_name ?? null,
         data.category_id ?? null,
+        data.short_description ?? null,
+        data.full_description ?? null,
+        data.health_benefits ?? null,
+        data.ingredients ?? null,
       ];
 
       // Catch any remaining undefined before MySQL2 does
@@ -90,13 +98,54 @@ exports.addProduct = async (data) => {
 };
 
 // Get All Products
-exports.getAllProducts = async () => {
+exports.getAllProducts = async (filters = {}) => {
   return await withConnection(async (connection) => {
-    const query = `SELECT * FROM rajlaksmi_product ORDER BY id DESC`;
+    let whereClause = `WHERE 1=1`;
+    const values = [];
 
-    const [rows] = await connection.execute(query);
+    if (filters.category && filters.category !== "all") {
+      whereClause += ` AND category_name = ?`;
+      values.push(filters.category);
+    }
 
-    return rows.map(mapProduct);
+    if (filters.search) {
+      whereClause += ` AND product_name LIKE ?`;
+      values.push(`%${filters.search}%`);
+    }
+
+    if (filters.minPrice !== undefined && !isNaN(filters.minPrice)) {
+      whereClause += ` AND product_price >= ?`;
+      values.push(Number(filters.minPrice));
+    }
+
+    if (filters.maxPrice !== undefined && !isNaN(filters.maxPrice)) {
+      whereClause += ` AND product_price <= ?`;
+      values.push(Number(filters.maxPrice));
+    }
+
+    if (filters.weight && filters.weight !== "all") {
+      whereClause += ` AND product_weight LIKE ?`;
+      values.push(`%${filters.weight}%`);
+    }
+
+    const countQuery = `SELECT COUNT(*) as total FROM rajlaksmi_product ${whereClause}`;
+    const [countRows] = await connection.execute(countQuery, values);
+    const total = countRows[0].total;
+
+    let query = `SELECT * FROM rajlaksmi_product ${whereClause} ORDER BY id DESC`;
+
+    const limitNum = parseInt(filters.limit) || 10;
+    const pageNum = parseInt(filters.page) || 1;
+    const offset = (pageNum - 1) * limitNum;
+
+    query += ` LIMIT ${limitNum} OFFSET ${offset}`;
+
+    const [rows] = await connection.execute(query, values);
+
+    return {
+      products: rows.map(mapProduct),
+      total,
+    };
   });
 };
 
@@ -134,7 +183,11 @@ exports.updateProduct = async (id, data) => {
         is_active = ?,
         product_stock = ?,
         category_name = ?,
-        category_id = ?
+        category_id = ?,
+        short_description = ?,
+        full_description = ?,
+        health_benefits = ?,
+        ingredients = ?
       WHERE id = ?
     `;
 
@@ -149,6 +202,10 @@ exports.updateProduct = async (id, data) => {
       data.product_stock ?? null,
       data.category_name ?? null,
       data.category_id ?? null,
+      data.short_description ?? null,
+      data.full_description ?? null,
+      data.health_benefits ?? null,
+      data.ingredients ?? null,
       id,
     ];
 

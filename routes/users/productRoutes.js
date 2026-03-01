@@ -35,10 +35,8 @@ router.post(
 // Fetch helpers
 router.get("/home-products", productController.getHomeProducts);
 router.get("/get_all_products", productController.getAllProducts);
-router.get(
-  "/products/category/:category",
-  productController.getProductsByCategory,
-);
+router.get("/category/:category", productController.getProductsByCategory);
+router.get("/get-product/:product_id", productController.getProductById);
 
 router.use(errorHandler);
 

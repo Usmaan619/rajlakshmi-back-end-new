@@ -35,8 +35,32 @@ exports.addProduct = async (req, res) => {
 // ── Get All Products ─────────────────────────────────────────────────────────
 exports.getAllProducts = async (req, res) => {
   try {
-    const products = await productModel.getAllProducts();
-    res.json({ success: true, products });
+    const { page, limit, category, search, minPrice, maxPrice, weight } =
+      req.query;
+
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 10;
+
+    const { products, total } = await productModel.getAllProducts({
+      page: pageNum,
+      limit: limitNum,
+      category,
+      search,
+      minPrice,
+      maxPrice,
+      weight,
+    });
+
+    res.json({
+      success: true,
+      products,
+      pagination: {
+        totalItems: total,
+        totalPages: Math.ceil(total / limitNum),
+        currentPage: pageNum,
+        limit: limitNum,
+      },
+    });
   } catch (error) {
     console.error("Fetch error:", error);
     res.status(500).json({ error: "Failed to fetch products" });
