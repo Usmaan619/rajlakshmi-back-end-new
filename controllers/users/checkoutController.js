@@ -1,4 +1,5 @@
 const { pool } = require("../../config/dbConnection");
+const axios = require("axios");
 
 // Address Controllers
 const saveAddress = async (req, res) => {
@@ -11,6 +12,7 @@ const saveAddress = async (req, res) => {
     city,
     state,
     pincode,
+    country,
     is_default,
   } = req.body;
   try {
@@ -23,7 +25,7 @@ const saveAddress = async (req, res) => {
     }
 
     const [result] = await pool.query(
-      "INSERT INTO user_addresses (user_id, full_name, phone, address_line1, address_line2, city, state, pincode, is_default) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO user_addresses (user_id, full_name, phone, address_line1, address_line2, city, state, pincode, country, is_default) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         user_id,
         full_name,
@@ -33,6 +35,7 @@ const saveAddress = async (req, res) => {
         city,
         state,
         pincode,
+        country,
         is_default,
       ],
     );
@@ -118,10 +121,34 @@ const getMyOrders = async (req, res) => {
   const { user_id } = req.params;
   try {
     const [orders] = await pool.query(
-      "SELECT o.*, a.full_name, a.address_line1, a.city FROM orders o JOIN user_addresses a ON o.shipping_address_id = a.id WHERE o.user_id = ? ORDER BY o.created_at DESC",
+      "SELECT o.*, a.full_name, a.address_line1, a.city, a.country FROM orders o JOIN user_addresses a ON o.shipping_address_id = a.id WHERE o.user_id = ? ORDER BY o.created_at DESC",
       [user_id],
     );
-    res.status(200).json({ success: true, orders });
+
+    if (orders.length === 0) {
+      return res.status(200).json({ success: true, orders: [] });
+    }
+
+    const orderIds = orders.map((o) => o.id);
+    const [items] = await pool.query(
+      "SELECT * FROM order_items WHERE order_id IN (?)",
+      [orderIds],
+    );
+
+    // Group items by order_id
+    const ordersWithItems = orders.map((order) => {
+      return {
+        ...order,
+        items: items
+          .filter((item) => item.order_id === order.id)
+          .map((item) => ({
+            ...item,
+            image: item.product_image, // Map product_image to image for frontend
+          })),
+      };
+    });
+
+    res.status(200).json({ success: true, orders: ordersWithItems });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -130,12 +157,12 @@ const getMyOrders = async (req, res) => {
 const getOrderDetails = async (req, res) => {
   const { order_id } = req.params;
   try {
-    const [order] = await pool.query(
+    const [orderRows] = await pool.query(
       "SELECT o.*, a.* FROM orders o JOIN user_addresses a ON o.shipping_address_id = a.id WHERE o.id = ?",
       [order_id],
     );
 
-    if (order.length === 0) {
+    if (orderRows.length === 0) {
       return res
         .status(404)
         .json({ success: false, message: "Order not found" });
@@ -148,8 +175,8 @@ const getOrderDetails = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      order: order[0],
-      items,
+      order: orderRows[0],
+      items: items.map((item) => ({ ...item, image: item.product_image })),
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -191,6 +218,61 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
+const getTrackingStatus = async (req, res) => {
+  const { order_id } = req.params;
+  try {
+    const [[order]] = await pool.query(
+      "SELECT awb_number, shopmozo_order_id FROM orders WHERE id = ?",
+      [order_id],
+    );
+
+    if (!order) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
+    }
+
+    const awb = order.awb_number;
+    const shopmozoId = order.shopmozo_order_id;
+
+    if (!awb) {
+      return res.status(200).json({
+        success: true,
+        tracking: {
+          current_status: shopmozoId ? "Order processing" : "Pending",
+          awb_number: null,
+        },
+      });
+    }
+
+    const response = await axios.get(
+      `https://shipping-api.com/app/api/v1/track-order?awb_number=${awb}`,
+      {
+        headers: {
+          "private-key": process.env.SHOPMOZO_PRIVATE_KEY,
+          "public-key": process.env.SHOPMOZO_PUBLIC_KEY,
+        },
+        timeout: 10000,
+      },
+    );
+
+    if (response.data?.result === "1") {
+      res.status(200).json({ success: true, tracking: response.data.data });
+    } else {
+      res.status(200).json({
+        success: true,
+        tracking: {
+          current_status: "Tracking information unavailable",
+          awb_number: awb,
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Tracking error:", error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   saveAddress,
   getAddresses,
@@ -199,4 +281,5 @@ module.exports = {
   getMyOrders,
   getOrderDetails,
   updateOrderStatus,
+  getTrackingStatus,
 };

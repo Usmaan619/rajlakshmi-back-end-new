@@ -65,7 +65,9 @@ exports.addProduct = async (data) => {
       const values = [
         data.product_name ?? null,
         data.product_price ?? null,
-        JSON.stringify(data.product_weight ?? []),
+        typeof data.product_weight === "string"
+          ? data.product_weight
+          : JSON.stringify(data.product_weight ?? []),
         data.product_purchase_price ?? null,
         data.product_del_price ?? null,
         data.is_featured ?? 0,
@@ -132,7 +134,7 @@ exports.getAllProducts = async (filters = {}) => {
     const [countRows] = await connection.execute(countQuery, values);
     const total = countRows[0].total;
 
-    let query = `SELECT * FROM rajlaksmi_product ${whereClause} ORDER BY id DESC`;
+    let query = `SELECT * FROM rajlaksmi_product ${whereClause} ORDER BY id ASC`;
 
     const limitNum = parseInt(filters.limit) || 10;
     const pageNum = parseInt(filters.page) || 1;
@@ -194,7 +196,9 @@ exports.updateProduct = async (id, data) => {
     const values = [
       data.product_name ?? null,
       data.product_price ?? null,
-      JSON.stringify(data.product_weight ?? []),
+      typeof data.product_weight === "string"
+        ? data.product_weight
+        : JSON.stringify(data.product_weight ?? []),
       data.product_purchase_price ?? null,
       data.product_del_price ?? null,
       data.is_featured ?? null,
@@ -253,7 +257,7 @@ exports.getHomePageProducts = async () => {
     const query = `
       SELECT * FROM (
         SELECT *,
-        ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY id DESC) as rn
+        ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY id ASC) as rn
         FROM rajlaksmi_product
         WHERE is_active = 1
       ) as t
@@ -273,7 +277,7 @@ exports.getProductsByCategory = async (category_name) => {
       SELECT * FROM rajlaksmi_product
       WHERE category_name = ?
       AND is_active = 1
-      ORDER BY id DESC
+      ORDER BY id ASC
     `;
 
     const [rows] = await connection.execute(query, [category_name]);

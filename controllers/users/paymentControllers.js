@@ -57,12 +57,13 @@ const createPaymentAndGenerateUrl = async (req, res) => {
   const amountInPaise = user_total_amount * 100;
 
   // Insert user details into the database
-  const userQuery = `INSERT INTO rajlaksmi_payment (user_name, user_mobile_num, user_email, user_state, user_city, user_country, user_house_number, user_landmark, user_pincode, user_total_amount, purchase_price, product_quantity, date, time)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  const userQuery = `INSERT INTO rajlaksmi_payment (user_id, user_name, user_mobile_num, user_email, user_state, user_city, user_country, user_house_number, user_landmark, user_pincode, user_total_amount, purchase_price, product_quantity, date, time)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
   try {
     const [result] = await withConnection(async (connection) => {
       return connection.execute(userQuery, [
+        req.body.user_id,
         user_name,
         user_mobile_num,
         user_email,
@@ -93,7 +94,7 @@ const createPaymentAndGenerateUrl = async (req, res) => {
       user_landmark,
       user_pincode,
       cart,
-      date
+      date,
     );
 
     // Create a unique order ID
@@ -102,7 +103,7 @@ const createPaymentAndGenerateUrl = async (req, res) => {
     const mergedKey = await generateMergedKey(
       user_name,
       user_mobile_num,
-      orderId
+      orderId,
     ); // Create the merged key
 
     // Create a JWT for secure data exchange
@@ -115,7 +116,7 @@ const createPaymentAndGenerateUrl = async (req, res) => {
         amountInPaise,
       },
       process.env.JWT_SECRET, // Use a strong secret key from your environment
-      { expiresIn: "6m" } // Token expires in 6 minutes
+      { expiresIn: "6m" }, // Token expires in 6 minutes
     );
 
     // Define the payment payload for PhonePe
@@ -134,7 +135,7 @@ const createPaymentAndGenerateUrl = async (req, res) => {
 
     // Encode the payload into Base64 format
     const payload = Buffer.from(JSON.stringify(paymentPayload)).toString(
-      "base64"
+      "base64",
     );
 
     // Generate the checksum for PhonePe request
@@ -228,7 +229,7 @@ const getPhonePeUrlStatusAndUpdatePayment = async (req, res) => {
     const paymentDetails = response.data;
 
     // Update payment status in the database
-    const query = `UPDATE rajlaksmi_payment SET status = ?, paymentDetails = ?, isPaymentPaid = ? WHERE user_id = ?`;
+    const query = `UPDATE rajlaksmi_payment SET status = ?, paymentDetails = ?, isPaymentPaid = ? WHERE id = ?`;
     const isPaymentPaid = paymentStatus === "true";
 
     const [result] = await withConnection(async (connection) => {
@@ -256,7 +257,7 @@ const getPhonePeUrlStatusAndUpdatePayment = async (req, res) => {
   } catch (err) {
     console.error(
       "Error fetching PhonePe status or updating database:",
-      err.message
+      err.message,
     );
     return res.status(500).json({ success: false, error: err.message });
   }
@@ -288,7 +289,7 @@ async function generateShopmozyAPI(
   user_landmark,
   user_pincode,
   cart,
-  date
+  date,
 ) {
   try {
     const ShippingPayLoad = {
@@ -336,7 +337,7 @@ async function generateShopmozyAPI(
           "private-key": "G0K1PQYBq3Xlph6y48gw",
           "public-key": "LBYfQgGFRljv1A249H87",
         },
-      }
+      },
     );
     return apiResponse?.data?.data?.order_id;
   } catch (error) {}

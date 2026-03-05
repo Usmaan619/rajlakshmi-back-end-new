@@ -87,7 +87,7 @@ exports.updateOrderStatus = async (id, status) => {
     const query = `
       UPDATE rajlaksmi_payment
       SET status = ?
-      WHERE user_id = ?
+      WHERE id = ?
     `;
     await connection.execute(query, [status, id]);
     return true;

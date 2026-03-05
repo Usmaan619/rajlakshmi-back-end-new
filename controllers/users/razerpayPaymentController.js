@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const moment = require("moment");
 const { withConnection } = require("../../utils/helper");
+const { pool } = require("../../config/dbConnection");
 
 /* =============================
    RAZORPAY INSTANCE
@@ -131,19 +132,24 @@ const savePaymentDetails = async (userData, shopmozoOrderId, cart = []) => {
   const date = moment().format("YYYY-MM-DD");
   const time = getCurrentTime();
 
-  const query = `
-    INSERT INTO rajlaksmi_payment
-    (
-      user_name, user_mobile_num, user_email, user_state, user_city,
-      user_country, user_house_number, user_landmark, user_pincode,
-      user_total_amount, purchase_price, product_quantity,
-      date, time, shopmozo_order_id, status, isPaymentPaid, cart_data
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', false, ?)
-  `;
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
 
-  const [result] = await withConnection((conn) =>
-    conn.execute(query, [
+    /* 1️⃣ SAVE TO rajlaksmi_payment */
+    const queryPayment = `
+      INSERT INTO rajlaksmi_payment
+      (
+        user_id, user_name, user_mobile_num, user_email, user_state, user_city,
+        user_country, user_house_number, user_landmark, user_pincode,
+        user_total_amount, purchase_price, product_quantity,
+        date, time, shopmozo_order_id, status, isPaymentPaid, cart_data
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', false, ?)
+    `;
+
+    const [paymentResult] = await connection.execute(queryPayment, [
+      userData.user_id,
       userData.user_name,
       userData.user_mobile_num,
       userData.user_email,
@@ -159,11 +165,52 @@ const savePaymentDetails = async (userData, shopmozoOrderId, cart = []) => {
       date,
       time,
       shopmozoOrderId,
-      JSON.stringify(cart), // Store full cart data
-    ]),
-  );
+      JSON.stringify(cart),
+    ]);
+    const paymentId = paymentResult.insertId;
 
-  return result.insertId;
+    /* 2️⃣ SAVE TO orders */
+    const [orderResult] = await connection.execute(
+      "INSERT INTO orders (user_id, total_amount, shipping_address_id, payment_method, status, payment_status, shopmozo_order_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [
+        userData.user_id,
+        userData.user_total_amount,
+        userData.shipping_address_id,
+        userData.payment_method || "ONLINE",
+        "pending",
+        "pending",
+        shopmozoOrderId,
+      ],
+    );
+    const orderId = orderResult.insertId;
+
+    /* 3️⃣ SAVE TO order_items */
+    if (cart && cart.length > 0) {
+      const itemValues = cart.map((item) => [
+        orderId,
+        item.id,
+        item.name,
+        item.quantity,
+        item.price,
+        item.weight || null,
+        item.image || (item.product_images && item.product_images[0]) || null,
+      ]);
+
+      await connection.query(
+        "INSERT INTO order_items (order_id, product_id, product_name, quantity, price, weight, product_image) VALUES ?",
+        [itemValues],
+      );
+    }
+
+    await connection.commit();
+    return { paymentId, orderId };
+  } catch (error) {
+    await connection.rollback();
+    console.error("❌ DB Transaction Error:", error.message);
+    throw error;
+  } finally {
+    connection.release();
+  }
 };
 
 /* =============================
@@ -183,9 +230,13 @@ const validatePaymentInput = (userData) => {
     "user_total_amount",
     "purchase_price",
     "product_quantity",
+    "user_id",
   ];
 
+  const optionalFields = ["user_landmark"]; // Just for clarity
+
   for (const field of requiredFields) {
+    if (optionalFields.includes(field)) continue; // Skip optional
     if (!userData[field]) {
       throw new Error(`Missing required field: ${field}`);
     }
@@ -225,7 +276,7 @@ const createPaymentAndGenerateUrlRazor = async (req, res) => {
     /* 1️⃣ SAVE TO DB (temporary order id) */
     const tempOrderId = `TEMP_${Date.now()}`;
 
-    const userId = await savePaymentDetails(
+    const { paymentId, orderId } = await savePaymentDetails(
       userData,
       tempOrderId,
       userData.cart || [],
@@ -237,7 +288,8 @@ const createPaymentAndGenerateUrlRazor = async (req, res) => {
       currency: "INR",
       receipt: tempOrderId,
       notes: {
-        userId: userId.toString(),
+        paymentId: paymentId.toString(),
+        orderId: orderId.toString(),
         user_name: userData.user_name,
         user_email: userData.user_email,
         user_mobile_num: userData.user_mobile_num,
@@ -248,7 +300,7 @@ const createPaymentAndGenerateUrlRazor = async (req, res) => {
     /* 3️⃣ JWT TOKEN */
     const token = jwt.sign(
       {
-        userId,
+        paymentId,
         amount: amountInPaise,
         user_name: userData.user_name,
         user_email: userData.user_email,
@@ -399,8 +451,8 @@ const getRazorpayStatusAndUpdatePayment = async (req, res) => {
     if (isPaid) {
       // Fetch user data
       const [[userRow]] = await withConnection((conn) =>
-        conn.execute(`SELECT * FROM rajlaksmi_payment WHERE user_id=?`, [
-          notes.userId,
+        conn.execute(`SELECT * FROM rajlaksmi_payment WHERE id=?`, [
+          notes.paymentId || notes.userId,
         ]),
       );
 
@@ -417,17 +469,32 @@ const getRazorpayStatusAndUpdatePayment = async (req, res) => {
       conn.execute(
         `UPDATE rajlaksmi_payment
          SET status=?, paymentDetails=?, isPaymentPaid=?, razorpay_payment_id=?, shopmozo_order_id=?
-         WHERE user_id=?`,
+         WHERE id=?`,
         [
           payment.status,
           JSON.stringify(payment),
           isPaid,
           razorpay_payment_id,
           shopmozoOrderId,
-          notes.userId,
+          notes.paymentId || notes.userId,
         ],
       ),
     );
+
+    // Update orders table
+    if (notes.orderId) {
+      await withConnection((conn) =>
+        conn.execute(
+          `UPDATE orders SET status=?, payment_status=?, shopmozo_order_id=? WHERE id=?`,
+          [
+            isPaid ? "processing" : "pending",
+            isPaid ? "paid" : payment.status || "failed",
+            shopmozoOrderId || null,
+            notes.orderId,
+          ],
+        ),
+      );
+    }
 
     // WhatsApp notification
     if (isPaid && notes.user_mobile_num) {
