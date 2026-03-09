@@ -181,11 +181,6 @@ router.delete("/reels-delete/:id", reelControllerGauswarn.deleteReelById); // de
 router.post(
   "/blogs/create",
   upload.single("image"),
-  (req, res, next) => {
-    console.log("DEBUG BODYssssssssssssss:", req.body);
-    console.log("DEBUG FILE:", req.file);
-    next();
-  },
   blogsControllerGauswarn.createBlogController,
 );
 // UPDATE BLOG

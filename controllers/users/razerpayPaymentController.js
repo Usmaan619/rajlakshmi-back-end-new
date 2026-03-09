@@ -69,10 +69,10 @@ const generateShopmozoOrder = async (userData, cart, date) => {
     product_detail: cart.map((item) => ({
       name: item.product_name || item.name || "Ghee",
       sku_number: item.sku || item.product_id || "SKU001",
-      quantity: Number(item.product_quantity),
+      quantity: Number(item.quantity || item.product_quantity || 1),
       discount: item.discount || "",
       hsn: item.hsn || "17021190",
-      unit_price: Number(item.product_price),
+      unit_price: Number(item.price || item.product_price || 0),
       product_category: item.category || "Ghee",
     })),
 
@@ -488,7 +488,7 @@ const getRazorpayStatusAndUpdatePayment = async (req, res) => {
           `UPDATE orders SET status=?, payment_status=?, shopmozo_order_id=? WHERE id=?`,
           [
             isPaid ? "processing" : "pending",
-            isPaid ? "paid" : payment.status || "failed",
+            isPaid ? "completed" : (payment.status === "failed" ? "failed" : "pending"),
             shopmozoOrderId || null,
             notes.orderId,
           ],
