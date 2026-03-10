@@ -1,6 +1,7 @@
 // Get All Products
 
 const adminUserInfoModal = require("../../model/admin/userInfoModal");
+const userModel = require("../../model/users/userModel");
 const asyncHandler = require("express-async-handler");
 
 exports.getAllUserInfo = asyncHandler(async (req, res) => {
@@ -39,5 +40,25 @@ exports.updateOrderStatus = asyncHandler(async (req, res) => {
 
   } catch (error) {
     res.json({ success: false, message: "Failed to update" });
+  }
+});
+
+exports.getRajlaxmiUsers = asyncHandler(async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const result = await userModel.getAllUsers({
+      page: parseInt(page),
+      limit: parseInt(limit),
+    });
+
+    res.json({
+      success: true,
+      Customer: result.rows,
+      total: result.total,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(result.total / limit),
+    });
+  } catch (error) {
+    res.json({ success: false, message: "Failed to fetch users" });
   }
 });

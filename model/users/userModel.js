@@ -154,3 +154,54 @@ exports.updateUser = async (userId, updateData) => {
     throw error;
   }
 };
+
+exports.getAllUsers = async ({ page = 1, limit = 100 }) => {
+  try {
+    return await withConnection(async (connection) => {
+      const offset = (page - 1) * limit;
+
+      // 1. Get Total Count
+      const totalQuery = `SELECT COUNT(*) as total FROM rajlaxmi_user_new`;
+      const [[totalResult]] = await connection.execute(totalQuery);
+
+      // 2. Get Paginated Users
+      const userQuery = `
+        SELECT id, full_name, email, mobile_number, role, permissions, status, created_at 
+        FROM rajlaxmi_user_new 
+        ORDER BY id DESC 
+        LIMIT ${parseInt(limit)} 
+        OFFSET ${parseInt(offset)}
+      `;
+      const [users] = await connection.execute(userQuery);
+
+      if (users.length === 0) {
+        return { rows: [], total: totalResult.total };
+      }
+
+      // 3. Get All Addresses for these users
+      const userIds = users.map((u) => u.id);
+      const addressQuery = `
+        SELECT id, user_id, full_name, phone, address_line1, address_line2, city, state, pincode, country, is_default 
+        FROM user_addresses 
+        WHERE user_id IN (${userIds.join(",")})
+      `;
+      const [addresses] = await connection.execute(addressQuery);
+
+      // 4. Map addresses to users
+      const rows = users.map((user) => {
+        return {
+          ...user,
+          addresses: addresses.filter((addr) => addr.user_id === user.id),
+        };
+      });
+
+      return {
+        rows: rows,
+        total: totalResult.total,
+      };
+    });
+  } catch (error) {
+    console.log("getAllUsers error: ", error);
+    throw error;
+  }
+};

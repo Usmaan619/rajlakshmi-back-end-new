@@ -77,6 +77,11 @@ router.post(
   authMiddleware,
   userInfoController.updateOrderStatus,
 );
+router.get(
+  "/getRajlaxmiUsers",
+  authMiddleware,
+  userInfoController.getRajlaxmiUsers,
+);
 
 router.post(
   "/getAllSales",
