@@ -192,8 +192,15 @@ const updateOrderStatus = async (req, res) => {
     const updates = [];
 
     if (status) {
+      const statusMapping = {
+        'Pending': 'pending',
+        'Shipped': 'shipped',
+        'Delivered': 'delivered',
+        'Cancel': 'cancelled'
+      };
+      const dbStatus = statusMapping[status] || status.toLowerCase();
       updates.push("status = ?");
-      params.push(status);
+      params.push(dbStatus);
     }
     if (payment_status) {
       updates.push("payment_status = ?");
@@ -210,6 +217,26 @@ const updateOrderStatus = async (req, res) => {
     params.push(id);
 
     await pool.query(query, params);
+
+    // Sync with rajlaksmi_payment table if status is updated
+    if (status) {
+      try {
+        const [[orderRow]] = await pool.query(
+          "SELECT shopmozo_order_id FROM orders WHERE id = ?",
+          [id],
+        );
+        if (orderRow && orderRow.shopmozo_order_id) {
+          await pool.query(
+            "UPDATE rajlaksmi_payment SET status = ? WHERE shopmozo_order_id = ?",
+            [status, orderRow.shopmozo_order_id],
+          );
+        }
+      } catch (syncError) {
+        console.error("Failed to sync status to rajlaksmi_payment:", syncError);
+        // We don't fail the main request if sync fails, but we log it
+      }
+    }
+
     res
       .status(200)
       .json({ success: true, message: "Order updated successfully" });

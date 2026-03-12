@@ -22,6 +22,7 @@ const imageUploadControllerGauswarn = require("../../controllers/users/uploadCon
 const homeBannerControllerGauswarn = require("../../controllers/users/homeBannerController");
 
 const reelControllerGauswarn = require("../../controllers/users/reelController");
+const youtubeController = require("../../controllers/users/youtubeController");
 
 const blogsControllerGauswarn = require("../../controllers/users/blogController");
 
@@ -180,6 +181,11 @@ router.post(
 router.post("/reels", reelControllerGauswarn.createReel); // add
 router.get("/reels/all", reelControllerGauswarn.listReels); // list
 router.delete("/reels-delete/:id", reelControllerGauswarn.deleteReelById); // delete
+
+// youtube shorts
+router.post("/shorts", youtubeController.createYoutubeShort); // delete
+router.get("/shorts/all", youtubeController.listYoutubeShorts); // delete
+router.delete("/shorts-delete/:id", youtubeController.deleteYoutubeShortById); // delete
 
 // blogs routes
 // CREATE BLOG
