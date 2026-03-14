@@ -44,12 +44,51 @@ exports.getAllReviews = async () => {
   }
 };
 
-// Fetch reviews by product_id
-exports.getReviewsByProduct = async (product_id) => {
+// Fetch reviews by product_id with pagination
+exports.getReviewsByProduct = async (product_id, limit, offset) => {
   try {
     return await withConnection(async (connection) => {
-      const query =
-        "SELECT * FROM rajlaksmi_feedback WHERE product_id = ? ORDER BY id DESC";
+      let query = "SELECT * FROM rajlaksmi_feedback WHERE product_id = ? ORDER BY id DESC";
+      let params = [product_id];
+
+      if (limit !== undefined && offset !== undefined) {
+        query += " LIMIT ? OFFSET ?";
+        params.push(parseInt(limit), parseInt(offset));
+      }
+
+      const [rows] = await connection.execute(query, params);
+      return rows;
+    });
+  } catch (error) {
+    console.error("Database Error:", error.message);
+    throw error;
+  }
+};
+
+// Get total reviews count for a product
+exports.getReviewsCountByProduct = async (product_id) => {
+  try {
+    return await withConnection(async (connection) => {
+      const query = "SELECT COUNT(*) as total, SUM(rating) as totalRating FROM rajlaksmi_feedback WHERE product_id = ?";
+      const [rows] = await connection.execute(query, [product_id]);
+      return rows[0];
+    });
+  } catch (error) {
+    console.error("Database Error:", error.message);
+    throw error;
+  }
+};
+
+// Get ratings breakdown for a product
+exports.getRatingsBreakdownByProduct = async (product_id) => {
+  try {
+    return await withConnection(async (connection) => {
+      const query = `
+        SELECT rating, COUNT(*) as count 
+        FROM rajlaksmi_feedback 
+        WHERE product_id = ? 
+        GROUP BY rating
+      `;
       const [rows] = await connection.execute(query, [product_id]);
       return rows;
     });

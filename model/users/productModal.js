@@ -57,9 +57,10 @@ exports.addProduct = async (data) => {
           short_description,
           full_description,
           health_benefits,
-          ingredients
+          ingredients,
+          product_subtitle
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       const values = [
@@ -80,6 +81,7 @@ exports.addProduct = async (data) => {
         data.full_description ?? null,
         data.health_benefits ?? null,
         data.ingredients ?? null,
+        data.product_subtitle ?? null,
       ];
 
       // Catch any remaining undefined before MySQL2 does
@@ -189,7 +191,8 @@ exports.updateProduct = async (id, data) => {
         short_description = ?,
         full_description = ?,
         health_benefits = ?,
-        ingredients = ?
+        ingredients = ?,
+        product_subtitle = ?
       WHERE id = ?
     `;
 
@@ -210,6 +213,7 @@ exports.updateProduct = async (id, data) => {
       data.full_description ?? null,
       data.health_benefits ?? null,
       data.ingredients ?? null,
+      data.product_subtitle ?? null,
       id,
     ];
 

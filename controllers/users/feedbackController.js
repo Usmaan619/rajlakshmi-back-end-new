@@ -48,27 +48,26 @@ exports.getReviews = asyncHandler(async (req, res) => {
         reviews: [],
       });
     }
-    const totalReviews = reviews?.length;
+    const totalReviews = reviews.length;
 
-    const ratingsBreakdown = [1, 2, 3, 4, 5].reduce((acc, rating) => {
-      acc[rating] = reviews.filter((review) => review.rating === rating).length;
-      return acc;
-    }, {});
+    const ratingsBreakdown = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    let sumRatings = 0;
 
-    const averageRating =
-      reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews ||
-      0;
+    reviews.forEach((review) => {
+      const r = parseFloat(review.rating) || 0;
+      sumRatings += r;
+      const rounded = Math.round(r);
+      if (rounded >= 1 && rounded <= 5) {
+        ratingsBreakdown[rounded]++;
+      }
+    });
+
+    const averageRating = totalReviews > 0 ? sumRatings / totalReviews : 0;
 
     res.json({
-      averageRating: parseFloat(averageRating.toFixed(2)),
+      averageRating: parseFloat(averageRating.toFixed(1)),
       totalReviews,
-      ratingsBreakdown: {
-        5: ((ratingsBreakdown[5] || 0) / totalReviews) * 100,
-        4: ((ratingsBreakdown[4] || 0) / totalReviews) * 100,
-        3: ((ratingsBreakdown[3] || 0) / totalReviews) * 100,
-        2: ((ratingsBreakdown[2] || 0) / totalReviews) * 100,
-        1: ((ratingsBreakdown[1] || 0) / totalReviews) * 100,
-      },
+      ratingsBreakdown,
       reviews,
     });
   } catch (error) {
@@ -77,45 +76,44 @@ exports.getReviews = asyncHandler(async (req, res) => {
   }
 });
 
-// Fetch reviews for a specific product
+// Fetch reviews for a specific product with pagination
 exports.getFeedbackByProduct = asyncHandler(async (req, res) => {
   try {
     const { product_id } = req.params;
-    const reviews = await reviewModel.getReviewsByProduct(product_id);
+    const limit = parseInt(req.query.limit) || 3;
+    const page = parseInt(req.query.page) || 1;
+    const offset = (page - 1) * limit;
 
-    if (!reviews?.length) {
-      return res.json({
-        averageRating: 0,
-        totalReviews: 0,
-        ratingsBreakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
-        reviews: [],
-      });
-    }
+    // Fetch data concurrently
+    const [reviews, stats, breakdownRows] = await Promise.all([
+      reviewModel.getReviewsByProduct(product_id, limit, offset),
+      reviewModel.getReviewsCountByProduct(product_id),
+      reviewModel.getRatingsBreakdownByProduct(product_id),
+    ]);
 
-    const totalReviews = reviews.length;
-    const ratingsBreakdown = [1, 2, 3, 4, 5].reduce((acc, rating) => {
-      acc[rating] = reviews.filter((review) => review.rating === rating).length;
-      return acc;
-    }, {});
+    const totalReviews = stats.total || 0;
+    const sumRatings = parseFloat(stats.totalRating) || 0;
+    const averageRating = totalReviews > 0 ? sumRatings / totalReviews : 0;
 
-    const averageRating =
-      reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews ||
-      0;
+    const ratingsBreakdown = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    breakdownRows.forEach((row) => {
+      const r = Math.round(parseFloat(row.rating));
+      if (r >= 1 && r <= 5) {
+        ratingsBreakdown[r] = row.count;
+      }
+    });
 
     res.json({
       success: true,
-      averageRating: parseFloat(averageRating.toFixed(2)),
+      averageRating: parseFloat(averageRating.toFixed(1)),
       totalReviews,
-      ratingsBreakdown: {
-        5: ((ratingsBreakdown[5] || 0) / totalReviews) * 100,
-        4: ((ratingsBreakdown[4] || 0) / totalReviews) * 100,
-        3: ((ratingsBreakdown[3] || 0) / totalReviews) * 100,
-        2: ((ratingsBreakdown[2] || 0) / totalReviews) * 100,
-        1: ((ratingsBreakdown[1] || 0) / totalReviews) * 100,
-      },
+      ratingsBreakdown,
       reviews,
+      totalPages: Math.ceil(totalReviews / limit),
+      currentPage: page,
     });
   } catch (error) {
+    console.error("Error fetching product reviews:", error);
     res.status(500).json({ error: "Failed to fetch product reviews" });
   }
 });
