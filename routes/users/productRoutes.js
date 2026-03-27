@@ -8,7 +8,7 @@ const upload = require("../../middlewares/multer");
 // Add new product — max 10 images (base64 stored in DB)
 router.post(
   "/add-product",
-  upload.array("images", 10),
+  upload.any(),
   productController.addProduct,
 );
 
@@ -30,6 +30,13 @@ router.post(
   "/replace-image",
   upload.single("image"),
   productController.replaceProductImage,
+);
+
+// Replace or add video
+router.post(
+  "/replace-video",
+  upload.single("video"),
+  productController.updateProductVideo,
 );
 
 // Fetch helpers

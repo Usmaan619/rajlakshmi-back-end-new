@@ -94,7 +94,7 @@ router.post(
 // Gauswarn Routes
 // ----------------------------
 // Products
-router.post("/createProductGauswarn", productController.addProduct);
+router.post("/createProductGauswarn", upload.any(), productController.addProduct);
 router.post(
   "/updateGauswarnProductById",
   productController.updateProductPrices,
@@ -159,6 +159,12 @@ router.post(
   "/replace-image",
   upload.single("image"),
   productController.replaceProductImage,
+);
+
+router.post(
+  "/replace-video",
+  upload.single("video"),
+  productController.updateProductVideo,
 );
 
 router.post("/banner-signature", homeBannerControllerGauswarn.getSignature);

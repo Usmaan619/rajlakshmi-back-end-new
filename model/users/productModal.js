@@ -33,6 +33,7 @@ const mapProduct = (product) => {
     ...product,
     product_images: images,
     product_weight: weight,
+    product_video: product.product_video,
     discount,
   };
 };
@@ -58,9 +59,10 @@ exports.addProduct = async (data) => {
           full_description,
           health_benefits,
           ingredients,
-          product_subtitle
+          product_subtitle,
+          product_video
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       const values = [
@@ -82,6 +84,7 @@ exports.addProduct = async (data) => {
         data.health_benefits ?? null,
         data.ingredients ?? null,
         data.product_subtitle ?? null,
+        data.product_video ?? null,
       ];
 
       // Catch any remaining undefined before MySQL2 does
@@ -192,7 +195,8 @@ exports.updateProduct = async (id, data) => {
         full_description = ?,
         health_benefits = ?,
         ingredients = ?,
-        product_subtitle = ?
+        product_subtitle = ?,
+        product_video = ?
       WHERE id = ?
     `;
 
@@ -214,6 +218,7 @@ exports.updateProduct = async (id, data) => {
       data.health_benefits ?? null,
       data.ingredients ?? null,
       data.product_subtitle ?? null,
+      data.product_video ?? null,
       id,
     ];
 
@@ -251,6 +256,19 @@ exports.updateProductImages = async (id, images) => {
     `;
 
     const [res] = await conn.execute(query, [images, id]);
+    return res.affectedRows > 0;
+  });
+};
+
+exports.updateProductVideo = async (id, video_url) => {
+  return await withConnection(async (conn) => {
+    const query = `
+      UPDATE rajlaksmi_product 
+      SET product_video = ?
+      WHERE id = ?
+    `;
+
+    const [res] = await conn.execute(query, [video_url, id]);
     return res.affectedRows > 0;
   });
 };

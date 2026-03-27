@@ -246,8 +246,39 @@ exports.resetPassword = asyncHandler(async (req, res) => {
 exports.updateUserProfile = asyncHandler(async (req, res) => {
   const userId = req.user.userId;
   const { full_name, mobile_number, profile_image } = req.body;
+  const allowedMimeTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
   try {
+    // Security Check: Validate profile_image if provided
+    if (profile_image) {
+      const isBase64Image = profile_image.startsWith("data:image/");
+      if (!isBase64Image) {
+        return res.json({
+          success: false,
+          message: "Invalid image format. Only data:image/ base64 is allowed.",
+        });
+      }
+
+      // Check MIME type from header
+      const mimeMatch = profile_image.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,/);
+      const mimeType = mimeMatch ? mimeMatch[1] : null;
+
+      if (!mimeType || !allowedMimeTypes.includes(mimeType)) {
+        return res.json({
+          success: false,
+          message: "Invalid file type. Only JPEG, PNG, and WEBP are allowed.",
+        });
+      }
+
+      // Check size (base64 is ~33% larger than raw data, so 135k characters is ~100KB)
+      if (profile_image.length > 150000) {
+        return res.json({
+          success: false,
+          message: "Profile image is too large. Maximum size is 100KB.",
+        });
+      }
+    }
+
     const success = await userModel.updateUser(userId, {
       full_name,
       mobile_number,

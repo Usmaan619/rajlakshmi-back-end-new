@@ -1,4 +1,5 @@
 const productModel = require("../../model/users/productModal");
+const { uploadBufferToS3 } = require("../../service/uploadFile");
 
 // ── Helper: Buffer → base64 data URI ────────────────────────────────────────
 const bufferToBase64 = (buffer, mimetype) =>
@@ -14,11 +15,17 @@ exports.addProduct = async (req, res) => {
     // }
 
     // Convert every uploaded file to base64 data URI  ✅ No cloud upload
-    const images = req.files.map((file) =>
-      bufferToBase64(file.buffer, file.mimetype),
-    );
+    const images = req.files
+      .filter((file) => file.fieldname === "images")
+      .map((file) => bufferToBase64(file.buffer, file.mimetype));
 
     data.product_images = images;
+
+    // Handle video upload if present (Base64)
+    const videoFile = req.files.find((file) => file.fieldname === "video");
+    if (videoFile) {
+      data.product_video = bufferToBase64(videoFile.buffer, videoFile.mimetype);
+    }
 
     const insertedId = await productModel.addProduct(data);
 
@@ -226,6 +233,24 @@ exports.replaceProductImage = async (req, res) => {
     await productModel.updateProductImages(id, JSON.stringify(images));
 
     res.json({ success: true, images });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ── Update Product Video ───────────────────────────────────────────────────
+exports.updateProductVideo = async (req, res) => {
+  try {
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: "Product ID is required" });
+    if (!req.file) return res.status(400).json({ error: "Video file is required" });
+
+    const videoBase64 = bufferToBase64(req.file.buffer, req.file.mimetype);
+    
+    // Update ONLY video in model.
+    await productModel.updateProductVideo(id, videoBase64);
+
+    res.json({ success: true, video_url: videoBase64 });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
