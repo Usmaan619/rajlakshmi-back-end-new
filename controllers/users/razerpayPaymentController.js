@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require("uuid");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const moment = require("moment");
-const { withConnection } = require("../../utils/helper");
+const { withConnection, calculateTotalWeight } = require("../../utils/helper");
 const { pool } = require("../../config/dbConnection");
 
 /* =============================
@@ -79,10 +79,7 @@ const generateShopmozoOrder = async (userData, cart, date) => {
     payment_type: "PREPAID",
     cod_amount: "",
     shipping_charges: "",
-    weight: 200,
-    length: 10,
-    width: 20,
-    height: 15,
+    weight: calculateTotalWeight(cart),
     warehouse_id: process.env.SHOPMOZO_WAREHOUSE_ID || "43190",
     gst_ewaybill_number: "",
     gstin_number: "",
@@ -110,8 +107,31 @@ const generateShopmozoOrder = async (userData, cart, date) => {
     );
 
     if (response.data?.result === "1") {
-      console.log(" Shopmozo order created:", response.data.data.order_id);
-      return response.data.data.order_id;
+      const shopmozoOrderId = response.data.data.order_id;
+      let awbNumber = null;
+      console.log(" Shopmozo order created:", shopmozoOrderId);
+      
+      // Auto Assign Courier
+      try {
+        const assignRes = await axios.post(
+          "https://shipping-api.com/app/api/v1/auto-assign-order",
+          { order_id: shopmozoOrderId },
+          {
+            headers: {
+              "private-key": process.env.SHOPMOZO_PRIVATE_KEY || "G0K1PQYBq3Xlph6y48gw",
+              "public-key": process.env.SHOPMOZO_PUBLIC_KEY || "LBYfQgGFRljv1A249H87",
+            },
+          }
+        );
+        if (assignRes.data?.result === "1") {
+           awbNumber = assignRes.data.data.awb;
+           console.log(" Courier auto-assigned, AWB:", awbNumber);
+        }
+      } catch (autoErr) {
+        console.error(" Courier Auto-Assign failed:", autoErr.message);
+      }
+
+      return { shopmozoOrderId, awbNumber };
     } else {
       console.warn("⚠️ Shopmozo rejected:", response.data?.message);
       return payload.order_id; // Fallback to local order ID
@@ -447,6 +467,7 @@ const getRazorpayStatusAndUpdatePayment = async (req, res) => {
     const isPaid = payment.status === "captured";
 
     let shopmozoOrderId = null;
+    let awbNumber = null;
 
     if (isPaid) {
       // Fetch user data
@@ -457,18 +478,24 @@ const getRazorpayStatusAndUpdatePayment = async (req, res) => {
       );
 
       // Create Shopmozo order
-      shopmozoOrderId = await generateShopmozoOrder(
+      const shipResult = await generateShopmozoOrder(
         userRow,
         JSON.parse(userRow.cart_data || "[]"),
         moment().format("YYYY-MM-DD"),
       );
+      if (shipResult && typeof shipResult === "object") {
+        shopmozoOrderId = shipResult.shopmozoOrderId;
+        awbNumber = shipResult.awbNumber; 
+      } else {
+        shopmozoOrderId = shipResult;
+      }
     }
 
     // Update database
     await withConnection((conn) =>
       conn.execute(
         `UPDATE rajlaksmi_payment
-         SET status=?, paymentDetails=?, isPaymentPaid=?, razorpay_payment_id=?, shopmozo_order_id=?
+         SET status=?, paymentDetails=?, isPaymentPaid=?, razorpay_payment_id=?, shopmozo_order_id=?, awb_number=?
          WHERE id=?`,
         [
           payment.status,
@@ -476,6 +503,7 @@ const getRazorpayStatusAndUpdatePayment = async (req, res) => {
           isPaid,
           razorpay_payment_id,
           shopmozoOrderId,
+          awbNumber || null,
           notes.paymentId || notes.userId,
         ],
       ),
@@ -485,11 +513,12 @@ const getRazorpayStatusAndUpdatePayment = async (req, res) => {
     if (notes.orderId) {
       await withConnection((conn) =>
         conn.execute(
-          `UPDATE orders SET status=?, payment_status=?, shopmozo_order_id=? WHERE id=?`,
+          `UPDATE orders SET status=?, payment_status=?, shopmozo_order_id=?, awb_number=? WHERE id=?`,
           [
             isPaid ? "processing" : "pending",
             isPaid ? "completed" : (payment.status === "failed" ? "failed" : "pending"),
             shopmozoOrderId || null,
+            awbNumber || null, 
             notes.orderId,
           ],
         ),

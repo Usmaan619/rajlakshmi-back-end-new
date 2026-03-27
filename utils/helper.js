@@ -20,18 +20,6 @@ const createEmailTransporter = async () => {
     throw error;
   }
 };
-
-// const withConnection = async (callback) => {
-//   const connection = await connectToDatabase();
-//   try {
-//     return await callback(connection);
-//   } catch (err) {
-//     throw err;
-//   } finally {
-//     connection.end();
-//   }
-// };
-
 const withConnection = async (callback) => {
   const connection = await connectToDatabase(); // Borrow a connection from the pool
   try {
@@ -58,6 +46,29 @@ const calculateProfit = (sellingPrice, purchase_price, product_quantity) => {
   return profitPrice;
 };
 
+const calculateTotalWeight = (items) => {
+  return items.reduce((acc, item) => {
+    let weight = 0;
+    if (typeof item.weight === "number") {
+      weight = item.weight;
+    } else if (typeof item.weight === "string") {
+      const match = item.weight.match(/([\d.]+)\s*(kg|gm|g|ml|l)/i);
+      if (match) {
+        const val = parseFloat(match[1]);
+        const unit = match[2].toLowerCase();
+        if (unit === "kg" || unit === "l") weight = val;
+        else if (unit === "gm" || unit === "g" || unit === "ml")
+          weight = val / 1000;
+      } else {
+        weight = parseFloat(item.weight) || 0.5;
+      }
+    } else {
+      weight = 0.5;
+    }
+    return acc + weight * (item.quantity || 1);
+  }, 0);
+};
+
 const shortenUUID = (uuid) => {
   const cleanUuid = uuid.replace(/-/g, "");
   return cleanUuid.substring(0, 5);
@@ -75,4 +86,5 @@ module.exports = {
   connectToDatabase,
   shortenUUID,
   extractIntegers,
+  calculateTotalWeight,
 };

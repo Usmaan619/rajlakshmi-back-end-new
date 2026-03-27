@@ -12,6 +12,7 @@ router.post("/order/place", checkoutController.placeOrder);
 router.get("/orders/:user_id", checkoutController.getMyOrders);
 router.get("/order/:order_id", checkoutController.getOrderDetails);
 router.post("/order/update/:id", checkoutController.updateOrderStatus);
+router.post("/get-shipping", checkoutController.getShippingRates);
 router.get("/track/:order_id", checkoutController.getTrackingStatus);
 
 module.exports = router;
