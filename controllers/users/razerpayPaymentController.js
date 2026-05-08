@@ -245,7 +245,6 @@ const validatePaymentInput = (userData) => {
     "user_city",
     "user_country",
     "user_house_number",
-    "user_landmark",
     "user_pincode",
     "user_total_amount",
     "purchase_price",
@@ -253,22 +252,19 @@ const validatePaymentInput = (userData) => {
     "user_id",
   ];
 
-  const optionalFields = ["user_landmark"]; // Just for clarity
-
   for (const field of requiredFields) {
-    if (optionalFields.includes(field)) continue; // Skip optional
-    if (!userData[field]) {
+    if (userData[field] === undefined || userData[field] === null || userData[field] === "") {
       throw new Error(`Missing required field: ${field}`);
     }
   }
 
   const amount = Number(userData.user_total_amount);
-  if (amount <= 0 || amount > 100000) {
-    throw new Error("Invalid amount (must be between ₹1 - ₹100000)");
+  if (amount <= 0 || amount > 500000) {
+    throw new Error("Invalid amount (must be between ₹1 - ₹5,00,000)");
   }
 
-  if (!/^\d{10}$/.test(userData.user_mobile_num)) {
-    throw new Error("Invalid mobile number format");
+  if (!/^\d{10}$/.test(String(userData.user_mobile_num))) {
+    throw new Error("Invalid mobile number format (must be 10 digits)");
   }
 
   return true;

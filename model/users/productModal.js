@@ -35,6 +35,7 @@ const mapProduct = (product) => {
     product_weight: weight,
     product_video: product.product_video,
     discount,
+    gst_percent: product.gst_percent || 0,
   };
 };
 
@@ -60,9 +61,10 @@ exports.addProduct = async (data) => {
           health_benefits,
           ingredients,
           product_subtitle,
-          product_video
+          product_video,
+          gst_percent
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       const values = [
@@ -85,6 +87,7 @@ exports.addProduct = async (data) => {
         data.ingredients ?? null,
         data.product_subtitle ?? null,
         data.product_video ?? null,
+        data.gst_percent ?? 0,
       ];
 
       // Catch any remaining undefined before MySQL2 does
@@ -139,7 +142,27 @@ exports.getAllProducts = async (filters = {}) => {
     const [countRows] = await connection.execute(countQuery, values);
     const total = countRows[0].total;
 
-    let query = `SELECT * FROM rajlaksmi_product ${whereClause} ORDER BY id ASC`;
+    let query = `
+      SELECT * FROM rajlaksmi_product 
+      ${whereClause} 
+      ORDER BY 
+        CASE category_name
+          WHEN 'PULSES' THEN 1
+          WHEN 'MILLET' THEN 2
+          WHEN 'MASALA' THEN 3
+          WHEN 'SWEETS' THEN 4
+          WHEN 'HONEY' THEN 5
+          WHEN 'DRY FRUITS' THEN 6
+          WHEN 'SEEDS' THEN 7
+          WHEN 'OTHER ITEMS' THEN 8
+          WHEN 'HOME MADE AACHAR' THEN 9
+          WHEN 'FRUITS DRINKS / CHUTNEY' THEN 10
+          WHEN 'RICE & WHEAT' THEN 11
+          WHEN 'OILS & GHEE' THEN 12
+          ELSE 99
+        END ASC,
+        id DESC
+    `;
 
     const limitNum = parseInt(filters.limit) || 10;
     const pageNum = parseInt(filters.page) || 1;
@@ -196,7 +219,8 @@ exports.updateProduct = async (id, data) => {
         health_benefits = ?,
         ingredients = ?,
         product_subtitle = ?,
-        product_video = ?
+        product_video = ?,
+        gst_percent = ?
       WHERE id = ?
     `;
 
@@ -219,6 +243,7 @@ exports.updateProduct = async (id, data) => {
       data.ingredients ?? null,
       data.product_subtitle ?? null,
       data.product_video ?? null,
+      data.gst_percent ?? 0,
       id,
     ];
 
@@ -231,6 +256,32 @@ exports.updateProduct = async (id, data) => {
     }
 
     const [res] = await connection.execute(query, values);
+
+    return res.affectedRows > 0;
+  });
+};
+
+exports.updateProductPrices = async (id, price, purchase_price, del_price, weight) => {
+  return await withConnection(async (connection) => {
+    const query = `
+      UPDATE rajlaksmi_product
+      SET
+        product_price = ?,
+        product_purchase_price = ?,
+        product_del_price = ?,
+        product_weight = ?
+      WHERE id = ?
+    `;
+
+    const weightValue = typeof weight === "string" ? weight : JSON.stringify(weight ?? []);
+    
+    const [res] = await connection.execute(query, [
+      price ?? null,
+      purchase_price ?? null,
+      del_price ?? null,
+      weightValue,
+      id
+    ]);
 
     return res.affectedRows > 0;
   });
@@ -279,7 +330,7 @@ exports.getHomePageProducts = async () => {
     const query = `
       SELECT * FROM (
         SELECT *,
-        ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY id ASC) as rn
+        ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY id DESC) as rn
         FROM rajlaksmi_product
         WHERE is_active = 1
       ) as t
@@ -299,7 +350,7 @@ exports.getProductsByCategory = async (category_name) => {
       SELECT * FROM rajlaksmi_product
       WHERE category_name = ?
       AND is_active = 1
-      ORDER BY id ASC
+      ORDER BY id DESC
     `;
 
     const [rows] = await connection.execute(query, [category_name]);

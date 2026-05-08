@@ -2,7 +2,10 @@ const { pool } = require("../../config/dbConnection");
 const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
 const moment = require("moment");
-const { calculateTotalWeight } = require("../../utils/helper");
+const {
+  calculateTotalWeight,
+  getShippingDimensions,
+} = require("../../utils/helper");
 
 // Address Controllers
 const saveAddress = async (req, res) => {
@@ -79,7 +82,7 @@ const deleteAddress = async (req, res) => {
 
 // Weight Calculation Helper removed, now using helper.js
 const getShippingRates = async (req, res) => {
-  const { cartItems, pincode, payment_type } = req.body;
+  const { cartItems, pincode } = req.body;
 
   if (!pincode || !cartItems || cartItems.length === 0) {
     return res
@@ -87,137 +90,65 @@ const getShippingRates = async (req, res) => {
       .json({ success: false, message: "Pincode and cart items required" });
   }
 
-  const totalWeight = calculateTotalWeight(cartItems);
-  const subtotal = cartItems.reduce(
-    (acc, item) => acc + item.price * item.quantity,
-    0,
-  );
+  const totalWeight = calculateTotalWeight(cartItems); // in kg
 
-  const payload = {
-    pickup_pincode: 452001,
-    delivery_pincode: Number(pincode),
-    payment_type: "PREPAID",
-    shipment_type: "FORWARD",
-    order_amount: subtotal || 0,
-    type_of_package: "SPS",
-    rov_type: "ROV_OWNER",
-    weight: Math.round(totalWeight * 1000), // KG to Grams
-    dimensions: [
-      {
-        no_of_box: "1",
-        length: "22",
-        width: "10",
-        height: "10",
-      },
-    ],
+  // ─────────────────────────────────────────────────────────────────────────
+  // Slab-based Shipping Rate Calculator
+  //
+  //  0.5kg  →  8kg  : ₹350 flat
+  //  10kg   → 100kg : ₹10/kg
+  //  100kg  → 500kg : ₹10/kg
+  //  500kg  → 1000kg: ₹9.5/kg
+  //  1000kg → 5000kg: ₹8.75/kg (midpoint of ₹8.5–₹9)
+  //
+  // To update rates → change only the SHIPPING_SLABS array below.
+  // ─────────────────────────────────────────────────────────────────────────
+  const SHIPPING_SLABS = [
+    { maxKg: 8,    ratePerKg: null, flatRate: 350,  label: "0.5–8kg flat rate"     },
+    { maxKg: 500,  ratePerKg: 10,   flatRate: null, label: "10–500kg @ ₹10/kg"     },
+    { maxKg: 1000, ratePerKg: 9.5,  flatRate: null, label: "500–1000kg @ ₹9.5/kg"  },
+    { maxKg: 5000, ratePerKg: 8.75, flatRate: null, label: "1000–5000kg @ ₹8.75/kg"},
+  ];
+
+  const getSlab = (weightKg) => {
+    for (const slab of SHIPPING_SLABS) {
+      if (weightKg <= slab.maxKg) return slab;
+    }
+    // Above 5000kg — use last slab rate
+    return SHIPPING_SLABS[SHIPPING_SLABS.length - 1];
   };
 
-  console.log("--- Shipping Rate Request (Exact Payload) ---");
-  console.log("Payload:", JSON.stringify(payload, null, 2));
+  const slab          = getSlab(totalWeight);
+  const shippingCharge = slab.flatRate !== null
+    ? slab.flatRate
+    : parseFloat((totalWeight * slab.ratePerKg).toFixed(2));
 
-  try {
-    const response = await axios.post(
-      "https://shipping-api.com/app/api/v1/rate-calculator",
-      payload,
-      {
-        headers: {
-          "private-key": process.env.SHOPMOZO_PRIVATE_KEY,
-          "public-key": process.env.SHOPMOZO_PUBLIC_KEY,
-        },
-        timeout: 10000,
-      },
-    );
+  const isBulkOrder   = totalWeight > 8;
+  const estimatedDelivery = totalWeight <= 8
+    ? "3-7 business days"
+    : totalWeight <= 100
+      ? "5-10 business days"
+      : "7-14 business days";
 
-    console.log("API Response Status:", response.data?.result);
-    console.log("API Full Response:", JSON.stringify(response.data, null, 2));
+  console.log(`📦 Weight: ${totalWeight}kg | Slab: ${slab.label} | Charge: ₹${shippingCharge}`);
 
-    if (
-      response.data?.result === "1" &&
-      response.data.data &&
-      response.data.data.length > 0
-    ) {
-      const couriers = response.data.data;
-      console.log(
-        "First Courier Object:",
-        JSON.stringify(couriers[0], null, 2),
-      );
-
-      // Prefer XpressBees, fallback to lowest price
-      const delhivery = couriers.find((c) =>
-        (c.courier_name || c.name || c.service_name || "")
-          .toLowerCase()
-          .includes("delhivery"),
-      );
-
-      const bestCourier =
-        delhivery ||
-        couriers.reduce((prev, curr) => {
-          const prevRate = parseFloat(
-            prev.rate || prev.total_charges || prev.price || prev.charge || 0,
-          );
-          const currRate = parseFloat(
-            curr.rate || curr.total_charges || curr.price || curr.charge || 0,
-          );
-          return prevRate < currRate ? prev : curr;
-        });
-
-      console.log(
-        "Selected Courier:",
-        bestCourier?.courier_name || bestCourier?.name,
-      );
-
-      // Handle multiple possible field names from Shipmozo
-      const shippingCharge = parseFloat(
-        bestCourier.rate ||
-          bestCourier.total_charges ||
-          bestCourier.price ||
-          bestCourier.charge ||
-          0,
-      );
-      const courierName =
-        bestCourier.courier_name ||
-        bestCourier.name ||
-        bestCourier.service_name ||
-        "Delhivery";
-      const deliveryDays =
-        bestCourier.estimated_delivery_days ||
-        bestCourier.delivery_days ||
-        bestCourier.tat ||
-        bestCourier.etd ||
-        bestCourier.expected_days;
-      const estimatedDelivery = deliveryDays
-        ? `${deliveryDays} days`
-        : "3-7 business days";
-
-      res.status(200).json({
-        success: true,
-        totalWeight,
-        shippingCharge,
-        courierName,
-        estimatedDelivery,
-        allCouriers: couriers.length, // Extra info
-      });
-    } else {
-      console.log(
-        "No Couriers available. Full response:",
-        JSON.stringify(response.data),
-      );
-      res.status(200).json({
-        success: false,
-        message:
-          response.data?.message || "Shipping not available for this location",
-      });
-    }
-  } catch (error) {
-    console.error("Shipmozo Rate Error:", error.message);
-    if (error.response) {
-      console.error("Error Data:", error.response.data);
-    }
-    res
-      .status(500)
-      .json({ success: false, message: "Shipping calculation failed" });
-  }
+  return res.status(200).json({
+    success:          true,
+    totalWeight,                   // kg
+    isBulkOrder,
+    shippingCharge,                // Final shipping amount in ₹
+    courierName:      "Standard Courier",
+    estimatedDelivery,
+    rateSource:       "slab",
+    slabInfo: {
+      label:       slab.label,
+      ratePerKg:   slab.ratePerKg,
+      flatRate:    slab.flatRate,
+    },
+  });
 };
+
+
 
 const generateShopmozoOrder = async (userData, items, totalWeight, isCOD) => {
   const payload = {
