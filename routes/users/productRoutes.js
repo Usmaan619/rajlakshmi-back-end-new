@@ -32,6 +32,12 @@ router.post(
   productController.replaceProductImage,
 );
 
+// Delete a single image at a given index
+router.post(
+  "/delete-image",
+  productController.deleteProductImage,
+);
+
 // Replace or add video
 router.post(
   "/replace-video",

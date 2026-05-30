@@ -238,6 +238,45 @@ exports.replaceProductImage = async (req, res) => {
   }
 };
 
+// ── Delete a single product image ──────────────────────────────────────────
+exports.deleteProductImage = async (req, res) => {
+  try {
+    const { id, delete_index } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: "Product ID is required" });
+    }
+
+    if (delete_index === undefined || delete_index === null) {
+      return res.status(400).json({ error: "delete_index is required" });
+    }
+
+    const product = await productModel.getProductById(id);
+
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    const images = Array.isArray(product.product_images)
+      ? product.product_images
+      : JSON.parse(product.product_images || "[]");
+
+    const idx = parseInt(delete_index, 10);
+    if (isNaN(idx) || idx < 0 || idx >= images.length) {
+      return res.status(400).json({ error: "Invalid delete_index" });
+    }
+
+    // Remove the image at delete_index
+    images.splice(idx, 1);
+
+    await productModel.updateProductImages(id, JSON.stringify(images));
+
+    res.json({ success: true, images });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 // ── Update Product Video ───────────────────────────────────────────────────
 exports.updateProductVideo = async (req, res) => {
   try {

@@ -60,11 +60,14 @@ exports.addProduct = async (data) => {
           full_description,
           health_benefits,
           ingredients,
+          why_choose,
+          storage_instructions,
+          common_uses,
           product_subtitle,
           product_video,
           gst_percent
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       const values = [
@@ -85,6 +88,9 @@ exports.addProduct = async (data) => {
         data.full_description ?? null,
         data.health_benefits ?? null,
         data.ingredients ?? null,
+        data.why_choose ?? null,
+        data.storage_instructions ?? null,
+        data.common_uses ?? null,
         data.product_subtitle ?? null,
         data.product_video ?? null,
         data.gst_percent ?? 0,
@@ -218,6 +224,9 @@ exports.updateProduct = async (id, data) => {
         full_description = ?,
         health_benefits = ?,
         ingredients = ?,
+        why_choose = ?,
+        storage_instructions = ?,
+        common_uses = ?,
         product_subtitle = ?,
         product_video = ?,
         gst_percent = ?
@@ -241,6 +250,9 @@ exports.updateProduct = async (id, data) => {
       data.full_description ?? null,
       data.health_benefits ?? null,
       data.ingredients ?? null,
+      data.why_choose ?? null,
+      data.storage_instructions ?? null,
+      data.common_uses ?? null,
       data.product_subtitle ?? null,
       data.product_video ?? null,
       data.gst_percent ?? 0,

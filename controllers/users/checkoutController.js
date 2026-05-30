@@ -118,10 +118,13 @@ const getShippingRates = async (req, res) => {
     return SHIPPING_SLABS[SHIPPING_SLABS.length - 1];
   };
 
-  const slab          = getSlab(totalWeight);
-  const shippingCharge = slab.flatRate !== null
+  const slab               = getSlab(totalWeight);
+  const baseShippingCharge = slab.flatRate !== null
     ? slab.flatRate
     : parseFloat((totalWeight * slab.ratePerKg).toFixed(2));
+
+  const shippingGST      = parseFloat((baseShippingCharge * 0.18).toFixed(2));
+  const shippingCharge   = parseFloat((baseShippingCharge + shippingGST).toFixed(2));
 
   const isBulkOrder   = totalWeight > 8;
   const estimatedDelivery = totalWeight <= 8
@@ -130,13 +133,15 @@ const getShippingRates = async (req, res) => {
       ? "5-10 business days"
       : "7-14 business days";
 
-  console.log(`📦 Weight: ${totalWeight}kg | Slab: ${slab.label} | Charge: ₹${shippingCharge}`);
+  console.log(`📦 Weight: ${totalWeight}kg | Slab: ${slab.label} | Base: ₹${baseShippingCharge} | GST(18%): ₹${shippingGST} | Total: ₹${shippingCharge}`);
 
   return res.status(200).json({
     success:          true,
     totalWeight,                   // kg
     isBulkOrder,
-    shippingCharge,                // Final shipping amount in ₹
+    shippingCharge,                // Final shipping amount (Base + 18% GST)
+    baseShippingCharge,            // Base amount for records
+    shippingGST,                   // GST amount for records
     courierName:      "Standard Courier",
     estimatedDelivery,
     rateSource:       "slab",
