@@ -17,14 +17,11 @@ exports.googleLogin = asyncHandler(async (req, res) => {
   }
 
   try {
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience:
-        process.env.GOOGLE_CLIENT_ID ||
-        "725826907762-oqshpfbtciv5n0coch74f91qurujp8r5.apps.googleusercontent.com",
-    });
+    const googleRes = await axios.get(
+      `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${token}`
+    );
 
-    const payload = ticket.getPayload();
+    const payload = googleRes.data;
     if (!payload || !payload.email) {
       return res.json({
         success: false,

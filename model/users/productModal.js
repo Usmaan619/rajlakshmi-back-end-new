@@ -148,8 +148,10 @@ exports.getAllProducts = async (filters = {}) => {
     const [countRows] = await connection.execute(countQuery, values);
     const total = countRows[0].total;
 
+    const LIST_COLUMNS = `id, product_name, product_price, product_weight, product_purchase_price, product_del_price, is_featured, is_active, product_stock, product_images, category_name, category_id, short_description, full_description, health_benefits, ingredients, why_choose, storage_instructions, common_uses, product_subtitle, gst_percent`;
+
     let query = `
-      SELECT * FROM rajlaksmi_product 
+      SELECT ${LIST_COLUMNS} FROM rajlaksmi_product 
       ${whereClause} 
       ORDER BY 
         CASE category_name
@@ -339,9 +341,11 @@ exports.updateProductVideo = async (id, video_url) => {
 // home page products
 exports.getHomePageProducts = async () => {
   return await withConnection(async (connection) => {
+    const LIST_COLUMNS = `id, product_name, product_price, product_weight, product_purchase_price, product_del_price, is_featured, is_active, product_stock, product_images, category_name, category_id, short_description, full_description, health_benefits, ingredients, why_choose, storage_instructions, common_uses, product_subtitle, gst_percent`;
+
     const query = `
       SELECT * FROM (
-        SELECT *,
+        SELECT ${LIST_COLUMNS},
         ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY id DESC) as rn
         FROM rajlaksmi_product
         WHERE is_active = 1
@@ -358,8 +362,10 @@ exports.getHomePageProducts = async () => {
 
 exports.getProductsByCategory = async (category_name) => {
   return await withConnection(async (connection) => {
+    const LIST_COLUMNS = `id, product_name, product_price, product_weight, product_purchase_price, product_del_price, is_featured, is_active, product_stock, product_images, category_name, category_id, short_description, full_description, health_benefits, ingredients, why_choose, storage_instructions, common_uses, product_subtitle, gst_percent`;
+
     const query = `
-      SELECT * FROM rajlaksmi_product
+      SELECT ${LIST_COLUMNS} FROM rajlaksmi_product
       WHERE category_name = ?
       AND is_active = 1
       ORDER BY id DESC
