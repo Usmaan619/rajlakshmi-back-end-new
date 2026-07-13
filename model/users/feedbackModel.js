@@ -52,8 +52,7 @@ exports.getReviewsByProduct = async (product_id, limit, offset) => {
       let params = [product_id];
 
       if (limit !== undefined && offset !== undefined) {
-        query += " LIMIT ? OFFSET ?";
-        params.push(parseInt(limit), parseInt(offset));
+        query += ` LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}`;
       }
 
       const [rows] = await connection.execute(query, params);
