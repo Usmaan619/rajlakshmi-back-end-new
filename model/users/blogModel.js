@@ -34,8 +34,8 @@ exports.getAllBlogs = async (
   category = "",
 ) => {
   return withConnection(async (connection) => {
-    const pageNum = Math.max(1, parseInt(page) || 1);
-    const limitNum = Math.max(1, Math.min(100, parseInt(limit) || 10));
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.max(1, Math.min(100, Number(limit) || 10));
     const offset = (pageNum - 1) * limitNum;
 
     let query = `SELECT * FROM rajlaksmi_blogs WHERE 1=1`;
@@ -52,14 +52,14 @@ exports.getAllBlogs = async (
       params.push(category);
     }
 
-    query += ` ORDER BY created_at ${sortOrder === "ASC" ? "ASC" : "DESC"} LIMIT ? OFFSET ?`;
-    params.push(limitNum, offset);
+    query += ` ORDER BY created_at ${sortOrder === "ASC" ? "ASC" : "DESC"}`;
+    query += ` LIMIT ${limitNum} OFFSET ${offset}`;
 
-    const [rows] = await connection.execute(query, params);
+    const [rows] = await connection.query(query, params);
+
     return rows;
   });
 };
-
 /* ================================
 GET RELATED BLOGS
 ================================ */

@@ -95,19 +95,20 @@ const getShippingRates = async (req, res) => {
   // ─────────────────────────────────────────────────────────────────────────
   // Slab-based Shipping Rate Calculator
   //
-  //  0.5kg  →  8kg  : ₹350 flat
-  //  10kg   → 100kg : ₹10/kg
-  //  100kg  → 500kg : ₹10/kg
-  //  500kg  → 1000kg: ₹9.5/kg
-  //  1000kg → 5000kg: ₹8.75/kg (midpoint of ₹8.5–₹9)
+  //  0kg  →  5kg  : ₹50 per kg
+  //  5kg  →  8kg  : ₹300 flat
+  //  8kg  → 40kg  : ₹350 flat
+  //  40kg+        : ₹10 per kg
+  //
+  //  + 18% GST on the base shipping charge
   //
   // To update rates → change only the SHIPPING_SLABS array below.
   // ─────────────────────────────────────────────────────────────────────────
   const SHIPPING_SLABS = [
-    { maxKg: 8,    ratePerKg: null, flatRate: 350,  label: "0.5–8kg flat rate"     },
-    { maxKg: 500,  ratePerKg: 10,   flatRate: null, label: "10–500kg @ ₹10/kg"     },
-    { maxKg: 1000, ratePerKg: 9.5,  flatRate: null, label: "500–1000kg @ ₹9.5/kg"  },
-    { maxKg: 5000, ratePerKg: 8.75, flatRate: null, label: "1000–5000kg @ ₹8.75/kg"},
+    { maxKg: 5,        ratePerKg: 50,   flatRate: null, label: "0–5 kg @ ₹50/kg"    },
+    { maxKg: 8,        ratePerKg: null,  flatRate: 300,  label: "5–8 kg @ ₹300 flat" },
+    { maxKg: 40,       ratePerKg: null,  flatRate: 350,  label: "8–40 kg @ ₹350 flat"},
+    { maxKg: Infinity, ratePerKg: 10,    flatRate: null, label: "40 kg+ @ ₹10/kg"   },
   ];
 
   const getSlab = (weightKg) => {
@@ -118,42 +119,49 @@ const getShippingRates = async (req, res) => {
     return SHIPPING_SLABS[SHIPPING_SLABS.length - 1];
   };
 
-  const slab               = getSlab(totalWeight);
-  const baseShippingCharge = slab.flatRate !== null
-    ? slab.flatRate
-    : parseFloat((totalWeight * slab.ratePerKg).toFixed(2));
+  const slab = getSlab(totalWeight);
+  // For per-kg slabs: round up to nearest whole kg
+  // so 500gm (0.5kg) → 1kg → ₹50, NOT ₹25
+  const chargeableWeight = Math.ceil(totalWeight);
+  const baseShippingCharge =
+    slab.flatRate !== null
+      ? slab.flatRate
+      : parseFloat((chargeableWeight * slab.ratePerKg).toFixed(2));
 
-  const shippingGST      = parseFloat((baseShippingCharge * 0.18).toFixed(2));
-  const shippingCharge   = parseFloat((baseShippingCharge + shippingGST).toFixed(2));
+  const shippingGST = parseFloat((baseShippingCharge * 0.18).toFixed(2));
+  const shippingCharge = parseFloat(
+    (baseShippingCharge + shippingGST).toFixed(2),
+  );
 
-  const isBulkOrder   = totalWeight > 8;
-  const estimatedDelivery = totalWeight <= 8
-    ? "3-7 business days"
-    : totalWeight <= 100
-      ? "5-10 business days"
-      : "7-14 business days";
+  const isBulkOrder = totalWeight > 8;
+  const estimatedDelivery =
+    totalWeight <= 8
+      ? "3-7 business days"
+      : totalWeight <= 100
+        ? "5-10 business days"
+        : "7-14 business days";
 
-  console.log(`📦 Weight: ${totalWeight}kg | Slab: ${slab.label} | Base: ₹${baseShippingCharge} | GST(18%): ₹${shippingGST} | Total: ₹${shippingCharge}`);
+  console.log(
+    `📦 Weight: ${totalWeight}kg | Slab: ${slab.label} | Base: ₹${baseShippingCharge} | GST(18%): ₹${shippingGST} | Total: ₹${shippingCharge}`,
+  );
 
   return res.status(200).json({
-    success:          true,
-    totalWeight,                   // kg
+    success: true,
+    totalWeight, // kg
     isBulkOrder,
-    shippingCharge,                // Final shipping amount (Base + 18% GST)
-    baseShippingCharge,            // Base amount for records
-    shippingGST,                   // GST amount for records
-    courierName:      "Standard Courier",
+    shippingCharge, // Final shipping amount (Base + 18% GST)
+    baseShippingCharge, // Base amount for records
+    shippingGST, // GST amount for records
+    courierName: "Standard Courier",
     estimatedDelivery,
-    rateSource:       "slab",
+    rateSource: "slab",
     slabInfo: {
-      label:       slab.label,
-      ratePerKg:   slab.ratePerKg,
-      flatRate:    slab.flatRate,
+      label: slab.label,
+      ratePerKg: slab.ratePerKg,
+      flatRate: slab.flatRate,
     },
   });
 };
-
-
 
 const generateShopmozoOrder = async (userData, items, totalWeight, isCOD) => {
   const payload = {
