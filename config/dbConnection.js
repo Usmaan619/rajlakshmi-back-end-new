@@ -10,7 +10,7 @@ const dbConfig = {
   port: process.env.DB_PORT,
   // Allow large payloads (base64 images can be several MB each)
   // 256 MB – adjust down if your MySQL server is constrained
-  maxAllowedPacket: 268435456,
+  // maxAllowedPacket: 268435456,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
