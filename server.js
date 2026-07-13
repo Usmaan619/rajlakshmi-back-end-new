@@ -1,6 +1,7 @@
 const dotenv = require("dotenv");
 dotenv.config();
 const express = require("express");
+const compression = require("compression");
 const usersRoutes = require("./routes/users/usersRoutes");
 const adminRoutes = require("./routes/admin/adminRoutes");
 const { errorHandler } = require("./middlewares/errorHandler");
@@ -15,31 +16,43 @@ const blogRoutes = require("./routes/users/blogRoutes");
 const checkoutRoutes = require("./routes/users/checkoutRoutes");
 const authRoutes = require("./routes/authRoutes");
 
-// Middlewares
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// ── Middlewares ──────────────────────────────────────────────────────────────
 
-// Allow specific origins or all origins
+// Gzip / Brotli compression — MUST be before any routes
+// Compresses all responses > 1 KB automatically
 app.use(
-  cors({
-    origin: "*", // Replace with your frontend URL
-    methods: ["GET", "POST", "PUT", "DELETE"], // Allowed methods
-    credentials: true, // If you need to allow credentials (e.g., cookies)
+  compression({
+    level: 6, // balanced speed vs size (1-9)
+    threshold: 1024, // only compress responses > 1 KB
+    filter: (req, res) => {
+      // Compress JSON, HTML, CSS, JS, SVG, etc.
+      if (req.headers["x-no-compression"]) return false;
+      return compression.filter(req, res);
+    },
   }),
 );
 
-// Routes
-app.use("/users", usersRoutes);
+// CORS — single configuration (removed duplicate)
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  }),
+);
 
+// Body parsers with reasonable limits
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
+// ── Routes ───────────────────────────────────────────────────────────────────
+app.use("/users", usersRoutes);
 app.use("/admin", adminRoutes);
 app.use("/products", productsRoutes);
-
 app.use("/category", categoryRoutes);
 app.use("/blogs", blogRoutes);
 app.use("/checkout", checkoutRoutes);
 app.use("/auth", authRoutes);
-
 app.use("/", metaFeedRoute);
 
 // Error handling middleware

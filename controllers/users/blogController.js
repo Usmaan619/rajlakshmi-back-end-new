@@ -10,9 +10,24 @@ const {
   getUniqueCategories,
 } = require("../../model/users/blogModel");
 
-// ── Helper: Buffer → base64 data URI ────────────────────────────────────────
-const bufferToBase64 = (buffer, mimetype) =>
-  `data:${mimetype};base64,${buffer.toString("base64")}`;
+const sharp = require('sharp');
+
+// ── Helper: Buffer → Compress → base64 data URI ─────────────────────────────
+const compressAndConvertToBase64 = async (buffer, mimetype) => {
+  try {
+    if (mimetype.startsWith('image/')) {
+      const compressedBuffer = await sharp(buffer)
+        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toBuffer();
+      return `data:image/webp;base64,${compressedBuffer.toString("base64")}`;
+    }
+    return `data:${mimetype};base64,${buffer.toString("base64")}`;
+  } catch (err) {
+    console.error("Image compression error:", err);
+    return `data:${mimetype};base64,${buffer.toString("base64")}`;
+  }
+};
 
 // ✅ Slug generator
 const makeSlug = (title) =>
@@ -46,7 +61,7 @@ exports.createBlogController = async (req, res) => {
 
     let imageUrl = bodyImageUrl || null;
     if (req.file) {
-      imageUrl = bufferToBase64(req.file.buffer, req.file.mimetype);
+      imageUrl = await compressAndConvertToBase64(req.file.buffer, req.file.mimetype);
     }
 
     // Handle content - if it's already an object, stringify it for DB
@@ -222,7 +237,7 @@ exports.updateBlogController = async (req, res) => {
 
     let imageUrl = oldBlog.image_url;
     if (req.file) {
-      imageUrl = bufferToBase64(req.file.buffer, req.file.mimetype);
+      imageUrl = await compressAndConvertToBase64(req.file.buffer, req.file.mimetype);
     } else if (bodyImageUrl !== undefined) {
       imageUrl = bodyImageUrl;
     }

@@ -1,9 +1,24 @@
 const productModel = require("../../model/users/productModal");
 const { uploadBufferToS3 } = require("../../service/uploadFile");
 
-// ── Helper: Buffer → base64 data URI ────────────────────────────────────────
-const bufferToBase64 = (buffer, mimetype) =>
-  `data:${mimetype};base64,${buffer.toString("base64")}`;
+const sharp = require('sharp');
+
+// ── Helper: Buffer → Compress → base64 data URI ─────────────────────────────
+const compressAndConvertToBase64 = async (buffer, mimetype) => {
+  try {
+    if (mimetype.startsWith('image/')) {
+      const compressedBuffer = await sharp(buffer)
+        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toBuffer();
+      return `data:image/webp;base64,${compressedBuffer.toString("base64")}`;
+    }
+    return `data:${mimetype};base64,${buffer.toString("base64")}`;
+  } catch (err) {
+    console.error("Image compression error:", err);
+    return `data:${mimetype};base64,${buffer.toString("base64")}`;
+  }
+};
 
 // ── Add Product ──────────────────────────────────────────────────────────────
 exports.addProduct = async (req, res) => {
@@ -15,16 +30,18 @@ exports.addProduct = async (req, res) => {
     // }
 
     // Convert every uploaded file to base64 data URI  ✅ No cloud upload
-    const images = req.files
-      .filter((file) => file.fieldname === "images")
-      .map((file) => bufferToBase64(file.buffer, file.mimetype));
+    const images = await Promise.all(
+      req.files
+        .filter((file) => file.fieldname === "images")
+        .map((file) => compressAndConvertToBase64(file.buffer, file.mimetype))
+    );
 
     data.product_images = images;
 
     // Handle video upload if present (Base64)
     const videoFile = req.files.find((file) => file.fieldname === "video");
     if (videoFile) {
-      data.product_video = bufferToBase64(videoFile.buffer, videoFile.mimetype);
+      data.product_video = await compressAndConvertToBase64(videoFile.buffer, videoFile.mimetype);
     }
 
     const insertedId = await productModel.addProduct(data);
@@ -176,8 +193,8 @@ exports.addProductImages = async (req, res) => {
     }
 
     // Convert new files to base64 data URIs  ✅ No cloud upload
-    const newImages = req.files.map((file) =>
-      bufferToBase64(file.buffer, file.mimetype),
+    const newImages = await Promise.all(
+      req.files.map((file) => compressAndConvertToBase64(file.buffer, file.mimetype))
     );
 
     const product = await productModel.getProductById(id);
@@ -228,7 +245,7 @@ exports.replaceProductImage = async (req, res) => {
       : JSON.parse(product.product_images || "[]");
 
     // Replace at index with new base64 data URI  ✅ No cloud delete needed
-    images[replace_index] = bufferToBase64(req.file.buffer, req.file.mimetype);
+    images[replace_index] = await compressAndConvertToBase64(req.file.buffer, req.file.mimetype);
 
     await productModel.updateProductImages(id, JSON.stringify(images));
 
@@ -284,7 +301,7 @@ exports.updateProductVideo = async (req, res) => {
     if (!id) return res.status(400).json({ error: "Product ID is required" });
     if (!req.file) return res.status(400).json({ error: "Video file is required" });
 
-    const videoBase64 = bufferToBase64(req.file.buffer, req.file.mimetype);
+    const videoBase64 = await compressAndConvertToBase64(req.file.buffer, req.file.mimetype);
     
     // Update ONLY video in model.
     await productModel.updateProductVideo(id, videoBase64);

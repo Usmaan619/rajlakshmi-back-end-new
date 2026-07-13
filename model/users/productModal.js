@@ -16,11 +16,24 @@ const safeJsonParse = (value, fallback = []) => {
   }
 };
 
+// ── Columns ──────────────────────────────────────────────────────────────────
+
+// FULL columns — used for single product detail page (includes everything)
+const FULL_COLUMNS = `id, product_name, product_price, product_weight, product_purchase_price, product_del_price, is_featured, is_active, product_stock, product_images, category_name, category_id, short_description, full_description, health_benefits, ingredients, why_choose, storage_instructions, common_uses, product_subtitle, product_video, gst_percent`;
+
+// LITE columns — used for listing/grid pages (NO full images, NO heavy text)
+// Only fetches first image as thumbnail via JSON_EXTRACT for massive bandwidth savings
+const LITE_COLUMNS = `id, product_name, product_price, product_weight, product_purchase_price, product_del_price, is_featured, is_active, product_stock, JSON_UNQUOTE(JSON_EXTRACT(product_images, '$[0]')) AS product_thumbnail, category_name, category_id, short_description, product_subtitle, gst_percent`;
+
+// ── Mappers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Maps a full product row (detail page) — parses JSON fields and calculates discount.
+ */
 const mapProduct = (product) => {
   const images = safeJsonParse(product.product_images);
   const weight = safeJsonParse(product.product_weight);
 
-  // Calculate discount if possible
   let discount = product.discount || 0;
   if (!discount && product.product_price && product.product_del_price) {
     const diff = product.product_del_price - product.product_price;
@@ -38,6 +51,45 @@ const mapProduct = (product) => {
     gst_percent: product.gst_percent || 0,
   };
 };
+
+/**
+ * Maps a lite product row (listing page) — uses thumbnail instead of full images.
+ * Does NOT include full_description, health_benefits, ingredients, etc.
+ */
+const mapProductLite = (product) => {
+  const weight = safeJsonParse(product.product_weight);
+
+  let discount = product.discount || 0;
+  if (!discount && product.product_price && product.product_del_price) {
+    const diff = product.product_del_price - product.product_price;
+    if (diff > 0) {
+      discount = Math.round((diff / product.product_del_price) * 100);
+    }
+  }
+
+  return {
+    id: product.id,
+    product_name: product.product_name,
+    product_price: product.product_price,
+    product_weight: weight,
+    product_purchase_price: product.product_purchase_price,
+    product_del_price: product.product_del_price,
+    is_featured: product.is_featured,
+    is_active: product.is_active,
+    product_stock: product.product_stock,
+    product_thumbnail: product.product_thumbnail || null,
+    // For backward compatibility: also provide product_images as array with just the thumbnail
+    product_images: product.product_thumbnail ? [product.product_thumbnail] : [],
+    category_name: product.category_name,
+    category_id: product.category_id,
+    short_description: product.short_description,
+    product_subtitle: product.product_subtitle,
+    gst_percent: product.gst_percent || 0,
+    discount,
+  };
+};
+
+// ── CRUD Operations ──────────────────────────────────────────────────────────
 
 exports.addProduct = async (data) => {
   try {
@@ -113,7 +165,7 @@ exports.addProduct = async (data) => {
   }
 };
 
-// Get All Products
+// ── Get All Products (LITE — for listing pages) ──────────────────────────────
 exports.getAllProducts = async (filters = {}) => {
   return await withConnection(async (connection) => {
     let whereClause = `WHERE 1=1`;
@@ -148,10 +200,9 @@ exports.getAllProducts = async (filters = {}) => {
     const [countRows] = await connection.execute(countQuery, values);
     const total = countRows[0].total;
 
-    const LIST_COLUMNS = `id, product_name, product_price, product_weight, product_purchase_price, product_del_price, is_featured, is_active, product_stock, product_images, category_name, category_id, short_description, full_description, health_benefits, ingredients, why_choose, storage_instructions, common_uses, product_subtitle, gst_percent`;
-
+    // Use LITE columns — only first image thumbnail, no heavy text fields
     let query = `
-      SELECT ${LIST_COLUMNS} FROM rajlaksmi_product 
+      SELECT ${LITE_COLUMNS} FROM rajlaksmi_product 
       ${whereClause} 
       ORDER BY 
         CASE category_name
@@ -181,20 +232,20 @@ exports.getAllProducts = async (filters = {}) => {
     const [rows] = await connection.execute(query, values);
 
     return {
-      products: rows.map(mapProduct),
+      products: rows.map(mapProductLite),
       total,
     };
   });
 };
 
-// Get Single Product by ID
+// ── Get Single Product by ID (FULL — for detail page) ────────────────────────
 exports.getProductById = async (id) => {
   if (id === undefined || id === null) {
     throw new Error("getProductById: id must not be undefined or null");
   }
   return await withConnection(async (connection) => {
     const [rows] = await connection.execute(
-      `SELECT * FROM rajlaksmi_product WHERE id=?`,
+      `SELECT ${FULL_COLUMNS} FROM rajlaksmi_product WHERE id=?`,
       [id],
     );
 
@@ -206,7 +257,8 @@ exports.getProductById = async (id) => {
   });
 };
 
-// Update Product (does NOT touch product_images — use updateProductImages() for that)
+// ── Update Product ───────────────────────────────────────────────────────────
+// Does NOT touch product_images — use updateProductImages() for that
 exports.updateProduct = async (id, data) => {
   return await withConnection(async (connection) => {
     const query = `
@@ -338,14 +390,12 @@ exports.updateProductVideo = async (id, video_url) => {
   });
 };
 
-// home page products
+// ── Home Page Products (LITE) ────────────────────────────────────────────────
 exports.getHomePageProducts = async () => {
   return await withConnection(async (connection) => {
-    const LIST_COLUMNS = `id, product_name, product_price, product_weight, product_purchase_price, product_del_price, is_featured, is_active, product_stock, product_images, category_name, category_id, short_description, full_description, health_benefits, ingredients, why_choose, storage_instructions, common_uses, product_subtitle, gst_percent`;
-
     const query = `
       SELECT * FROM (
-        SELECT ${LIST_COLUMNS},
+        SELECT ${LITE_COLUMNS},
         ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY id DESC) as rn
         FROM rajlaksmi_product
         WHERE is_active = 1
@@ -356,16 +406,15 @@ exports.getHomePageProducts = async () => {
 
     const [rows] = await connection.execute(query);
 
-    return rows.map(mapProduct);
+    return rows.map(mapProductLite);
   });
 };
 
+// ── Products by Category (LITE) ──────────────────────────────────────────────
 exports.getProductsByCategory = async (category_name) => {
   return await withConnection(async (connection) => {
-    const LIST_COLUMNS = `id, product_name, product_price, product_weight, product_purchase_price, product_del_price, is_featured, is_active, product_stock, product_images, category_name, category_id, short_description, full_description, health_benefits, ingredients, why_choose, storage_instructions, common_uses, product_subtitle, gst_percent`;
-
     const query = `
-      SELECT ${LIST_COLUMNS} FROM rajlaksmi_product
+      SELECT ${LITE_COLUMNS} FROM rajlaksmi_product
       WHERE category_name = ?
       AND is_active = 1
       ORDER BY id DESC
@@ -373,6 +422,6 @@ exports.getProductsByCategory = async (category_name) => {
 
     const [rows] = await connection.execute(query, [category_name]);
 
-    return rows.map(mapProduct);
+    return rows.map(mapProductLite);
   });
 };
