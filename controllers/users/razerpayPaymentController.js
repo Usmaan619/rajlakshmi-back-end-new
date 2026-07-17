@@ -491,7 +491,7 @@ const getRazorpayStatusAndUpdatePayment = async (req, res) => {
     await withConnection((conn) =>
       conn.execute(
         `UPDATE rajlaksmi_payment
-         SET status=?, paymentDetails=?, isPaymentPaid=?, razorpay_payment_id=?, shopmozo_order_id=?, awb_number=?
+         SET status=?, paymentDetails=?, isPaymentPaid=?, razorpay_payment_id=?, shopmozo_order_id=?
          WHERE id=?`,
         [
           payment.status,
@@ -499,7 +499,6 @@ const getRazorpayStatusAndUpdatePayment = async (req, res) => {
           isPaid,
           razorpay_payment_id,
           shopmozoOrderId,
-          awbNumber || null,
           notes.paymentId || notes.userId,
         ],
       ),

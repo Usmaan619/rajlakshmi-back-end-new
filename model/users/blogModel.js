@@ -70,16 +70,16 @@ exports.getRelatedBlogs = async (category, currentId, limit = 5) => {
       FROM rajlaksmi_blogs
       WHERE category = ? AND id != ?
       ORDER BY created_at DESC
-      LIMIT ?
+      LIMIT ${parseInt(limit)}
     `;
     const [rows] = await connection.execute(query, [
-      category,
-      currentId,
-      parseInt(limit),
+      category || null,
+      currentId || null,
     ]);
     return rows;
   });
 };
+
 
 /* ================================
 GET TOTAL BLOG COUNT
