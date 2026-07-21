@@ -27,14 +27,13 @@ exports.getOffers = async () => {
 // UPDATE all 4 offers
 exports.updateOffers = async (offerData) => {
   return await withConnection(async (connection) => {
+    // First delete all existing offers to keep only the latest one
+    await connection.execute("DELETE FROM rajlaksmi_offers");
+    
+    // Then insert the new offer
     const query = `
       INSERT INTO rajlaksmi_offers (offer_text1, offer_text2, offer_text3, offer_text4) 
       VALUES (?, ?, ?, ?) 
-      ON DUPLICATE KEY UPDATE 
-      offer_text1 = VALUES(offer_text1),
-      offer_text2 = VALUES(offer_text2),
-      offer_text3 = VALUES(offer_text3),
-      offer_text4 = VALUES(offer_text4)
     `;
     const [result] = await connection.execute(query, [
       offerData.offer_text1,
