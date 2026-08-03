@@ -9,6 +9,8 @@ const cors = require("cors");
 const app = express();
 const port = process.env.PORT || 5000;
 const { connectToDatabase } = require("./config/dbConnection");
+const helmet = require("helmet");
+const { globalRateLimiter } = require("./middlewares/rateLimiter");
 const metaFeedRoute = require("./routes/users/metaFeed");
 const productsRoutes = require("./routes/users/productRoutes");
 const categoryRoutes = require("./routes/users/category.routes");
@@ -17,6 +19,12 @@ const checkoutRoutes = require("./routes/users/checkoutRoutes");
 const authRoutes = require("./routes/authRoutes");
 
 // ── Middlewares ──────────────────────────────────────────────────────────────
+
+// Security HTTP headers
+app.use(helmet());
+
+// Apply global rate limiting
+app.use(globalRateLimiter);
 
 // Gzip / Brotli compression — MUST be before any routes
 // Compresses all responses > 1 KB automatically
@@ -32,10 +40,11 @@ app.use(
   }),
 );
 
-// CORS — single configuration (removed duplicate)
+// CORS — restrictive configuration
+const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : "*";
 app.use(
   cors({
-    origin: "*",
+    origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   }),

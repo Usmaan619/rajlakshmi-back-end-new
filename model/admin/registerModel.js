@@ -146,11 +146,13 @@ exports.getAllGauswarnUsers = async ({ search, page, limit }) => {
     const offset = (page - 1) * limit;
 
     const searchSql = search
-      ? `WHERE full_name LIKE '%${search}%' OR email LIKE '%${search}%' OR mobile_number LIKE '%${search}%'`
+      ? `WHERE full_name LIKE ? OR email LIKE ? OR mobile_number LIKE ?`
       : "";
+    
+    const searchParams = search ? [`%${search}%`, `%${search}%`, `%${search}%`] : [];
 
     const totalQuery = `SELECT COUNT(*) as total FROM rajlaksmi_admin_user ${searchSql}`;
-    const [[totalResult]] = await connection.execute(totalQuery);
+    const [[totalResult]] = await connection.execute(totalQuery, searchParams);
 
     const query = `
       SELECT *
@@ -160,7 +162,7 @@ exports.getAllGauswarnUsers = async ({ search, page, limit }) => {
       OFFSET ${offset}
     `;
 
-    const [rows] = await connection.execute(query);
+    const [rows] = await connection.execute(query, searchParams);
 
     return {
       rows,

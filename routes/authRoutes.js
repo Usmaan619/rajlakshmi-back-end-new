@@ -3,15 +3,16 @@ const router = express.Router();
 const authController = require("../controllers/users/authController");
 const socialAuthController = require("../controllers/users/socialAuthController");
 const { authMiddleware } = require("../middlewares/authMiddleware");
+const { loginRateLimiter } = require("../middlewares/rateLimiter");
 
 // User Login Route
-router.post("/login", authController.userLogin);
+router.post("/login", loginRateLimiter, authController.userLogin);
 
 // User Signup Route
 router.post("/signup", authController.userSignup);
 
 // Google Login Route
-router.post("/google-login", socialAuthController.googleLogin);
+router.post("/google-login", loginRateLimiter, socialAuthController.googleLogin);
 
 // Facebook Login Route
 router.post("/facebook-login", socialAuthController.facebookLogin);

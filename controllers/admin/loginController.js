@@ -39,7 +39,7 @@ exports.adminUserLogin = asyncHandler(async (req, res) => {
       { userId: user.id, email: user.email, userName: user.full_name },
       process.env.JWT_SECRET,
       {
-        expiresIn: "1d",
+        expiresIn: "2h",
       },
     );
     console.log("user: ", user);
@@ -105,7 +105,7 @@ exports.googleLogin = asyncHandler(async (req, res) => {
     const jwtToken = jwt.sign(
       { userId: user.id, email: user.email, userName: user.full_name },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" },
+      { expiresIn: "2h" },
     );
 
     return res.json({

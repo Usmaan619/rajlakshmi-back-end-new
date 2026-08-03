@@ -4,6 +4,7 @@ const router = express.Router();
 // Middleware
 const { errorHandler } = require("../../middlewares/errorHandler");
 const { authMiddleware } = require("../../middlewares/authMiddleware");
+const { loginRateLimiter } = require("../../middlewares/rateLimiter");
 
 // Controllers
 // Admin
@@ -43,12 +44,15 @@ const topBannerOfferController = require("../../controllers/users/topBannerOffer
 // Admin Routes
 // ----------------------------
 router.post("/register", registerController.adminUserRegister);
-router.post("/login", loginController.adminUserLogin);
-router.post("/google-login", loginController.googleLogin);
+router.post("/login", loginRateLimiter, loginController.adminUserLogin);
+router.post("/google-login", loginRateLimiter, loginController.googleLogin);
 
 router.post("/forgetPassword", forgotPasswordController.forgetPassword);
 router.post("/reset", forgotPasswordController.passwordReset);
 router.post("/verifyOtp", forgotPasswordController.verifyOtp);
+
+// Apply authentication to all admin routes below this point
+router.use(authMiddleware);
 
 router.get(
   "/getAllGauswarnUsers",

@@ -11,6 +11,7 @@ const {
   exportTableToExcel,
 } = require("../../controllers/users/excelController");
 const { errorHandler } = require("../../middlewares/errorHandler");
+const { authMiddleware } = require("../../middlewares/authMiddleware");
 
 const {
   createPaymentAndGenerateUrlRazor,
@@ -68,13 +69,13 @@ router.get("/getCSV", exportTableToExcel);
 
 router.post("/createb2bInquiry", createInquiry);
 
-router.get("/getb2bInquiries", getInquiries); // pagination + search + filter
+router.get("/getb2bInquiries", authMiddleware, getInquiries); // pagination + search + filter
 
-router.get("/getb2bInquiryById/:id", getInquiryById);
+router.get("/getb2bInquiryById/:id", authMiddleware, getInquiryById);
 
-router.post("/updateb2bInquiry/:id", updateInquiry);
+router.post("/updateb2bInquiry/:id", authMiddleware, updateInquiry);
 
-router.delete("/deleteb2bInquiry/:id", deleteInquiry);
+router.delete("/deleteb2bInquiry/:id", authMiddleware, deleteInquiry);
 
 // ** B2B Inquiry end  *//
 // razorpay

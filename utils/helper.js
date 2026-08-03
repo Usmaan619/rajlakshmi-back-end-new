@@ -49,11 +49,14 @@ const calculateProfit = (sellingPrice, purchase_price, product_quantity) => {
 const calculateTotalWeight = (items) => {
   return items.reduce((acc, item) => {
     let weight = 0;
-    if (typeof item.weight === "number") {
-      weight = item.weight;
-    } else if (typeof item.weight === "string") {
+    const itemWeight = item.weight !== undefined ? item.weight : item.product_weight;
+    const itemQuantity = item.quantity !== undefined ? item.quantity : item.product_quantity;
+
+    if (typeof itemWeight === "number") {
+      weight = itemWeight;
+    } else if (typeof itemWeight === "string") {
       // Try standard weight units first: "5kg", "500gm", "200ml", "1l"
-      const match = item.weight.match(/([\d.]+)\s*(kg|gm|g|ml|l)/i);
+      const match = itemWeight.match(/([\d.]+)\s*(kg|gm|g|ml|l)/i);
       if (match) {
         const val = parseFloat(match[1]);
         const unit = match[2].toLowerCase();
@@ -62,15 +65,20 @@ const calculateTotalWeight = (items) => {
           weight = val / 1000;
       }
       // Handle unit-based items: "1BTL", "2PCS", "1TIN" etc.
-      // Extract the numeric part and treat as kg
+      // Extract the numeric part and treat as kg (or gm if > 50)
       else {
-        const numMatch = item.weight.match(/([\d.]+)/);
-        weight = numMatch ? parseFloat(numMatch[1]) : 0.5;
+        const numMatch = itemWeight.match(/([\d.]+)/);
+        if (numMatch) {
+          const val = parseFloat(numMatch[1]);
+          weight = val > 50 ? val / 1000 : val;
+        } else {
+          weight = 0.5;
+        }
       }
     } else {
       weight = 0.5; // fallback default
     }
-    return acc + weight * (item.quantity || 1);
+    return acc + weight * (itemQuantity || 1);
   }, 0);
 };
 
@@ -103,22 +111,31 @@ const getShippingDimensions = (items) => {
 
     // Parse weight for this item
     let weightKg = 0;
-    if (typeof item.weight === "number") {
-      weightKg = item.weight;
-    } else if (typeof item.weight === "string") {
-      const match = item.weight.match(/([\d.]+)\s*(kg|gm|g|ml|l)/i);
+    const itemWeight = item.weight !== undefined ? item.weight : item.product_weight;
+    const itemQuantity = item.quantity !== undefined ? item.quantity : item.product_quantity;
+
+    if (typeof itemWeight === "number") {
+      weightKg = itemWeight;
+    } else if (typeof itemWeight === "string") {
+      const match = itemWeight.match(/([\d.]+)\s*(kg|gm|g|ml|l)/i);
       if (match) {
         const val = parseFloat(match[1]);
         const unit = match[2].toLowerCase();
         weightKg = (unit === "kg" || unit === "l") ? val : val / 1000;
       } else {
-        weightKg = parseFloat(item.weight) || 0.5;
+        const numMatch = itemWeight.match(/([\d.]+)/);
+        if (numMatch) {
+          const val = parseFloat(numMatch[1]);
+          weightKg = val > 50 ? val / 1000 : val;
+        } else {
+          weightKg = 0.5;
+        }
       }
     } else {
       weightKg = 0.5;
     }
 
-    const itemTotalWeight = weightKg * (item.quantity || 1);
+    const itemTotalWeight = weightKg * (itemQuantity || 1);
 
     if (!groups[profile.name]) {
       groups[profile.name] = { profile, totalWeightKg: 0 };

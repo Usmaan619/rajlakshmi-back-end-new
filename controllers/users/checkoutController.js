@@ -92,6 +92,7 @@ const getShippingRates = async (req, res) => {
 
   const totalWeight = calculateTotalWeight(cartItems); // in kg
 
+  console.log(JSON.stringify(cartItems), "totalWeight")
   // ─────────────────────────────────────────────────────────────────────────
   // Slab-based Shipping Rate Calculator
   //
@@ -105,10 +106,10 @@ const getShippingRates = async (req, res) => {
   // To update rates → change only the SHIPPING_SLABS array below.
   // ─────────────────────────────────────────────────────────────────────────
   const SHIPPING_SLABS = [
-    { maxKg: 5,        ratePerKg: 50,   flatRate: null, label: "0–5 kg @ ₹50/kg"    },
-    { maxKg: 8,        ratePerKg: null,  flatRate: 300,  label: "5–8 kg @ ₹300 flat" },
-    { maxKg: 40,       ratePerKg: null,  flatRate: 350,  label: "8–40 kg @ ₹350 flat"},
-    { maxKg: Infinity, ratePerKg: 10,    flatRate: null, label: "40 kg+ @ ₹10/kg"   },
+    { maxKg: 5, ratePerKg: 70, flatRate: null, label: "0–5 kg @ ₹70/kg" },
+    { maxKg: 8, ratePerKg: null, flatRate: 300, label: "5–8 kg @ ₹300 flat" },
+    { maxKg: 40, ratePerKg: null, flatRate: 350, label: "8–40 kg @ ₹350 flat" },
+    { maxKg: Infinity, ratePerKg: 10, flatRate: null, label: "40 kg+ @ ₹10/kg" },
   ];
 
   const getSlab = (weightKg) => {
