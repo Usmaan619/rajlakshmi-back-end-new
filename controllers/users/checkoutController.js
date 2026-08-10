@@ -96,7 +96,7 @@ const getShippingRates = async (req, res) => {
   // ─────────────────────────────────────────────────────────────────────────
   // Slab-based Shipping Rate Calculator
   //
-  //  0kg  →  5kg  : ₹50 per kg
+  //  0kg  →  5kg  : ₹100 per kg
   //  5kg  →  8kg  : ₹300 flat
   //  8kg  → 40kg  : ₹350 flat
   //  40kg+        : ₹10 per kg
@@ -106,7 +106,7 @@ const getShippingRates = async (req, res) => {
   // To update rates → change only the SHIPPING_SLABS array below.
   // ─────────────────────────────────────────────────────────────────────────
   const SHIPPING_SLABS = [
-    { maxKg: 5, ratePerKg: 70, flatRate: null, label: "0–5 kg @ ₹70/kg" },
+    { maxKg: 5, ratePerKg: 100, flatRate: null, label: "0–5 kg @ ₹100/kg" },
     { maxKg: 8, ratePerKg: null, flatRate: 300, label: "5–8 kg @ ₹300 flat" },
     { maxKg: 40, ratePerKg: null, flatRate: 350, label: "8–40 kg @ ₹350 flat" },
     { maxKg: Infinity, ratePerKg: 10, flatRate: null, label: "40 kg+ @ ₹10/kg" },
