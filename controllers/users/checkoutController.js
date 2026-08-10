@@ -139,9 +139,9 @@ const getShippingRates = async (req, res) => {
     estimatedDelivery,
     rateSource: "slab",
     slabInfo: {
-      label: slab.label,
-      ratePerKg: slab.ratePerKg,
-      flatRate: slab.flatRate,
+      label: `Multiplier ${multiplier} @ ₹130`,
+      ratePerKg: null,
+      flatRate: 130,
     },
   });
 };
