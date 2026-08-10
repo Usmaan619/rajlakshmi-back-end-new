@@ -128,6 +128,12 @@ const getShippingRates = async (req, res) => {
     `📦 Weight: ${totalWeight}kg | Multiplier: ${multiplier} | Base: ₹${baseShippingCharge} | GST(18%): ₹${shippingGST} | Total: ₹${shippingCharge}`,
   );
 
+  const subtotal = cartItems.reduce(
+    (total, item) => total + (item.price * item.quantity),
+    0
+  );
+  const platformFee = parseFloat((subtotal * 0.02).toFixed(2));
+
   return res.status(200).json({
     success: true,
     totalWeight, // kg
@@ -135,6 +141,7 @@ const getShippingRates = async (req, res) => {
     shippingCharge, // Final shipping amount (Base + 18% GST)
     baseShippingCharge, // Base amount for records
     shippingGST, // GST amount for records
+    platformFee, // 2% platform fee
     courierName: "Standard Courier",
     estimatedDelivery,
     rateSource: "slab",
