@@ -280,7 +280,7 @@ const createPaymentAndGenerateUrlRazor = async (req, res) => {
     // Input validation
     validatePaymentInput(userData);
 
-    const amountInPaise = Number(userData.user_total_amount) * 100;
+    const amountInPaise = Math.round(Number(userData.user_total_amount) * 100);
 
     console.log(
       "🛒 Payment initiation for:",
