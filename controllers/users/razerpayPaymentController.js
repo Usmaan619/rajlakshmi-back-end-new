@@ -306,10 +306,9 @@ const createPaymentAndGenerateUrlRazor = async (req, res) => {
       notes: {
         paymentId: paymentId.toString(),
         orderId: orderId.toString(),
-        user_name: userData.user_name,
-        user_email: userData.user_email,
-        user_mobile_num: userData.user_mobile_num,
-        cart: userData.cart || [],
+        user_name: String(userData.user_name).substring(0, 50),
+        user_email: String(userData.user_email).substring(0, 50),
+        user_mobile_num: String(userData.user_mobile_num).substring(0, 50),
       },
     });
 
@@ -336,10 +335,11 @@ const createPaymentAndGenerateUrlRazor = async (req, res) => {
       timestamp: moment().format("MMMM Do YYYY, h:mm:ss a"),
     });
   } catch (err) {
-    console.error("❌ PAYMENT INIT ERROR:", err.message);
+    const errorMsg = err.error?.description || err.message || JSON.stringify(err);
+    console.error("❌ PAYMENT INIT ERROR:", errorMsg);
     res.status(400).json({
       success: false,
-      message: err.message || "Payment initiation failed",
+      message: errorMsg || "Payment initiation failed",
     });
   }
 };
