@@ -94,40 +94,22 @@ const getShippingRates = async (req, res) => {
 
   console.log(JSON.stringify(cartItems), "totalWeight")
   // ─────────────────────────────────────────────────────────────────────────
-  // Slab-based Shipping Rate Calculator
+  // Step-based Shipping Rate Calculator
   //
-  //  0kg  →  5kg  : ₹100 per kg
-  //  5kg  →  8kg  : ₹300 flat
-  //  8kg  → 40kg  : ₹350 flat
-  //  40kg+        : ₹10 per kg
+  // Up to 1.5 kg: ₹130
+  // Up to 2.5 kg: ₹260
+  // Up to 3.5 kg: ₹390
+  // ... and so on (each additional kg or part thereof adds ₹130)
   //
-  //  + 18% GST on the base shipping charge
-  //
-  // To update rates → change only the SHIPPING_SLABS array below.
+  // + 18% GST on the base shipping charge
   // ─────────────────────────────────────────────────────────────────────────
-  const SHIPPING_SLABS = [
-    { maxKg: 5, ratePerKg: 100, flatRate: null, label: "0–5 kg @ ₹100/kg" },
-    { maxKg: 8, ratePerKg: null, flatRate: 300, label: "5–8 kg @ ₹300 flat" },
-    { maxKg: 40, ratePerKg: null, flatRate: 350, label: "8–40 kg @ ₹350 flat" },
-    { maxKg: Infinity, ratePerKg: 10, flatRate: null, label: "40 kg+ @ ₹10/kg" },
-  ];
-
-  const getSlab = (weightKg) => {
-    for (const slab of SHIPPING_SLABS) {
-      if (weightKg <= slab.maxKg) return slab;
-    }
-    // Above 5000kg — use last slab rate
-    return SHIPPING_SLABS[SHIPPING_SLABS.length - 1];
-  };
-
-  const slab = getSlab(totalWeight);
-  // For per-kg slabs: round up to nearest whole kg
-  // so 500gm (0.5kg) → 1kg → ₹50, NOT ₹25
-  const chargeableWeight = Math.ceil(totalWeight);
-  const baseShippingCharge =
-    slab.flatRate !== null
-      ? slab.flatRate
-      : parseFloat((chargeableWeight * slab.ratePerKg).toFixed(2));
+  
+  // Multiplier logic:
+  // <= 1.5kg gives multiplier of 1
+  // <= 2.5kg gives multiplier of 2
+  // <= 3.5kg gives multiplier of 3
+  const multiplier = Math.max(1, Math.ceil(totalWeight - 0.5));
+  const baseShippingCharge = multiplier * 130;
 
   const shippingGST = parseFloat((baseShippingCharge * 0.18).toFixed(2));
   const shippingCharge = parseFloat(
@@ -143,7 +125,7 @@ const getShippingRates = async (req, res) => {
         : "7-14 business days";
 
   console.log(
-    `📦 Weight: ${totalWeight}kg | Slab: ${slab.label} | Base: ₹${baseShippingCharge} | GST(18%): ₹${shippingGST} | Total: ₹${shippingCharge}`,
+    `📦 Weight: ${totalWeight}kg | Multiplier: ${multiplier} | Base: ₹${baseShippingCharge} | GST(18%): ₹${shippingGST} | Total: ₹${shippingCharge}`,
   );
 
   return res.status(200).json({

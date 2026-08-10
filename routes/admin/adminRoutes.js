@@ -50,6 +50,11 @@ router.post("/google-login", loginRateLimiter, loginController.googleLogin);
 router.post("/forgetPassword", forgotPasswordController.forgetPassword);
 router.post("/reset", forgotPasswordController.passwordReset);
 router.post("/verifyOtp", forgotPasswordController.verifyOtp);
+// Public Routes accessed by frontend without auth
+router.get("/home-banners", homeBannerControllerGauswarn.getHomeBanners);
+router.get("/shorts/all", youtubeController.listYoutubeShorts);
+router.get("/getAllOffer", topBannerOfferController.getOffersController);
+router.post("/createNewsletter", newsletterController.createNewsletter);
 
 // Apply authentication to all admin routes below this point
 router.use(authMiddleware);
@@ -173,8 +178,8 @@ router.post(
 
 router.post("/banner-signature", homeBannerControllerGauswarn.getSignature);
 
-// GET all 4 banners
-router.get("/home-banners", homeBannerControllerGauswarn.getHomeBanners);
+// GET all 4 banners (moved to public routes above)
+// router.get("/home-banners", homeBannerControllerGauswarn.getHomeBanners);
 
 router.post(
   "/home-banners-url",
@@ -194,7 +199,7 @@ router.delete("/reels-delete/:id", reelControllerGauswarn.deleteReelById); // de
 
 // youtube shorts
 router.post("/shorts", youtubeController.createYoutubeShort); // delete
-router.get("/shorts/all", youtubeController.listYoutubeShorts); // delete
+// router.get("/shorts/all", youtubeController.listYoutubeShorts); // moved to public
 router.delete("/shorts-delete/:id", youtubeController.deleteYoutubeShortById); // delete
 
 // blogs routes
@@ -239,7 +244,7 @@ router.delete("/deleteb2bInquiry/:id", deleteInquiry);
 //Newsletter Routes
 
 router.get("/getNewsletter", newsletterController.getNewsletter);
-router.post("/createNewsletter", newsletterController.createNewsletter);
+// router.post("/createNewsletter", newsletterController.createNewsletter); // moved to public
 router.post(
   "/updateNewsletterStatus/:id",
   newsletterController.updateNewsletterStatus,
@@ -248,7 +253,7 @@ router.delete("/deleteNewsletter/:id", newsletterController.deleteNewsletter);
 
 // End Newsletter Routes
 
-router.get("/getAllOffer", topBannerOfferController.getOffersController);
+// router.get("/getAllOffer", topBannerOfferController.getOffersController); // moved to public
 router.post("/updateOffer", topBannerOfferController.updateOffersController);
 
 // Contact (auth-protected)
