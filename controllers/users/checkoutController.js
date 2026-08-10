@@ -103,13 +103,29 @@ const getShippingRates = async (req, res) => {
   //
   // + 18% GST on the base shipping charge
   // ─────────────────────────────────────────────────────────────────────────
-  
-  // Multiplier logic:
-  // <= 1.5kg gives multiplier of 1
-  // <= 2.5kg gives multiplier of 2
-  // <= 3.5kg gives multiplier of 3
-  const multiplier = Math.max(1, Math.ceil(totalWeight - 0.5));
-  const baseShippingCharge = multiplier * 130;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  let baseShippingCharge = 0;
+  let slabLabel = "";
+  let multiplier = 0;
+
+  if (totalWeight <= 5) {
+    // New multiplier logic for 0–5 kg
+    multiplier = Math.max(1, Math.ceil(totalWeight - 0.5));
+    baseShippingCharge = multiplier * 130;
+    slabLabel = `Multiplier ${multiplier} @ ₹130`;
+  } else if (totalWeight <= 8) {
+    baseShippingCharge = 350;
+    slabLabel = "5–8 kg @ ₹350 flat";
+  } else if (totalWeight <= 40) {
+    baseShippingCharge = 450;
+    slabLabel = "8–40 kg @ ₹450 flat";
+  } else {
+    // 40kg+ : ₹10 per kg
+    const chargeableWeight = Math.ceil(totalWeight);
+    baseShippingCharge = chargeableWeight * 10;
+    slabLabel = "40 kg+ @ ₹10/kg";
+  }
 
   const shippingGST = parseFloat((baseShippingCharge * 0.18).toFixed(2));
   const shippingCharge = parseFloat(
@@ -125,7 +141,7 @@ const getShippingRates = async (req, res) => {
         : "7-14 business days";
 
   console.log(
-    `📦 Weight: ${totalWeight}kg | Multiplier: ${multiplier} | Base: ₹${baseShippingCharge} | GST(18%): ₹${shippingGST} | Total: ₹${shippingCharge}`,
+    `📦 Weight: ${totalWeight}kg | Slab: ${slabLabel} | Base: ₹${baseShippingCharge} | GST(18%): ₹${shippingGST} | Total: ₹${shippingCharge}`,
   );
 
   const subtotal = cartItems.reduce(
@@ -146,9 +162,9 @@ const getShippingRates = async (req, res) => {
     estimatedDelivery,
     rateSource: "slab",
     slabInfo: {
-      label: `Multiplier ${multiplier} @ ₹130`,
+      label: slabLabel,
       ratePerKg: null,
-      flatRate: 130,
+      flatRate: baseShippingCharge,
     },
   });
 };
