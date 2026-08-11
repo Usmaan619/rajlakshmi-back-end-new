@@ -1,4 +1,5 @@
 const imagekit = require("../../config/imagekit");
+const sharp = require("sharp");
 const {
   getAllBanners,
   getBannerSlot,
@@ -37,14 +38,19 @@ exports.updateHomeBanner = async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
+    // Convert file buffer to WebP buffer
+    const webpBuffer = await sharp(file.buffer)
+      .webp({ quality: 80 })
+      .toBuffer();
+
+    // Convert WebP buffer to Base64 string
+    const base64String = "data:image/webp;base64," + webpBuffer.toString("base64");
+
     // Get old banner
     const oldBanner = await getBannerSlot(slot);
 
-    // Upload new file to ImageKit
-    const newUrl = await uploadBufferToS3(file.buffer, file.mimetype);
-
-    // Delete old image (non-critical — purana Cloudinary URL ho toh skip hoga)
-    if (oldBanner) {
+    // Delete old image from S3 if it was stored there
+    if (oldBanner && (oldBanner.includes("http") || oldBanner.includes("https"))) {
       try {
         await deleteFromS3(oldBanner);
       } catch (delErr) {
@@ -52,13 +58,13 @@ exports.updateHomeBanner = async (req, res) => {
       }
     }
 
-    // Update DB with new ImageKit URL
-    await updateBannerSlot(slot, newUrl);
+    // Update DB with new Base64 URL
+    await updateBannerSlot(slot, base64String);
 
     return res.json({
       updated: true,
       slot,
-      newUrl,
+      newUrl: base64String,
     });
   } catch (error) {
     return res.status(500).json({ message: error.message });
