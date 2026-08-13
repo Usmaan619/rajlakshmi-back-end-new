@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS rajlaksmi_cart (
     unique_id VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
     price DECIMAL(10,2) NOT NULL,
-    image VARCHAR(500),
+    image LONGTEXT,
     quantity INT DEFAULT 1,
     weight VARCHAR(100),
     gst_percent DECIMAL(5,2),
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS rajlaksmi_wishlist (
     product_id VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
     price DECIMAL(10,2) NOT NULL,
-    image VARCHAR(500),
+    image LONGTEXT,
     originalPrice DECIMAL(10,2),
     discount DECIMAL(5,2),
     weightOptions JSON,
@@ -32,3 +32,7 @@ CREATE TABLE IF NOT EXISTS rajlaksmi_wishlist (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY unique_user_wishlist (user_id, product_id)
 );
+
+-- For existing tables, modify the column to LONGTEXT
+ALTER TABLE rajlaksmi_cart MODIFY COLUMN image LONGTEXT;
+ALTER TABLE rajlaksmi_wishlist MODIFY COLUMN image LONGTEXT;
