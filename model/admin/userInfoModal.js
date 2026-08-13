@@ -69,7 +69,8 @@ exports.getAllOrderDetails = async () => {
           isPaymentPaid, 
           id, 
           DATE, 
-          TIME 
+          TIME,
+          cart_data 
         FROM rajlaksmi_payment
          ORDER BY date DESC, time DESC;
       `;
