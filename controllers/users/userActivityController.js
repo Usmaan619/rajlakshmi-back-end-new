@@ -309,7 +309,7 @@ const getAdminActiveCarts = async (req, res) => {
           c.created_at,
           c.updated_at
         FROM rajlaksmi_cart c
-        JOIN users u ON c.user_id = u.id
+        JOIN rajlaxmi_user_new u ON c.user_id = u.id
         ORDER BY c.updated_at DESC
       `;
       const [rows] = await connection.execute(query);
