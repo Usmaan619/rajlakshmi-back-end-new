@@ -39,6 +39,7 @@ const {
 const newsletterController = require("../../controllers/users/newsletterController");
 
 const topBannerOfferController = require("../../controllers/users/topBannerOfferController");
+const userActivityController = require("../../controllers/users/userActivityController");
 
 // ----------------------------
 // Admin Routes
@@ -97,6 +98,12 @@ router.post(
   "/getAllSales",
   authMiddleware,
   monthlyReportController.getAllSales,
+);
+
+router.get(
+  "/active-carts",
+  authMiddleware,
+  userActivityController.getAdminActiveCarts
 );
 
 // ----------------------------

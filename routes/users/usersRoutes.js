@@ -7,11 +7,10 @@ const feedbackController = require("../../controllers/users/feedbackController")
 const productController = require("../../controllers/users/productController");
 const contactController = require("../../controllers/users/contactController");
 
-const {
-  exportTableToExcel,
-} = require("../../controllers/users/excelController");
+const { exportTableToExcel } = require("../../controllers/users/excelController");
 const { errorHandler } = require("../../middlewares/errorHandler");
 const { authMiddleware } = require("../../middlewares/authMiddleware");
+const userActivityController = require("../../controllers/users/userActivityController");
 
 const {
   createPaymentAndGenerateUrlRazor,
@@ -81,6 +80,18 @@ router.delete("/deleteb2bInquiry/:id", authMiddleware, deleteInquiry);
 // razorpay
 router.post("/create-order", createPaymentAndGenerateUrlRazor);
 router.post("/status", getRazorpayStatusAndUpdatePayment);
+
+// Cart Routes
+router.get("/cart", authMiddleware, userActivityController.getUserCart);
+router.post("/cart/add", authMiddleware, userActivityController.addToCart);
+router.delete("/cart/remove/:uniqueId", authMiddleware, userActivityController.removeFromCart);
+router.delete("/cart/clear", authMiddleware, userActivityController.clearCart);
+router.post("/cart/sync", authMiddleware, userActivityController.syncCart);
+
+// Wishlist Routes
+router.get("/wishlist", authMiddleware, userActivityController.getUserWishlist);
+router.post("/wishlist/toggle", authMiddleware, userActivityController.toggleWishlist);
+router.post("/wishlist/sync", authMiddleware, userActivityController.syncWishlist);
 
 router.use(errorHandler);
 
