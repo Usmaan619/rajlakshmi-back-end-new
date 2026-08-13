@@ -7,9 +7,9 @@ const { withConnection } = require("../../utils/helper");
 // Fetch cart for logged-in user
 const getUserCart = async (req, res) => {
   try {
-    // Expected to receive user_id from auth middleware.
+    // Expected to receive userId from auth middleware.
     // If not, it can be taken from request body or query (adjust as needed).
-    const userId = req.user ? req.user.id : req.body.user_id || req.query.user_id;
+    const userId = req.user ? req.user.userId : req.body.user_id || req.query.user_id;
 
     if (!userId) {
       return res.status(400).json({ success: false, message: "User ID is required" });
@@ -33,7 +33,7 @@ const getUserCart = async (req, res) => {
 // Add or update item in cart
 const addToCart = async (req, res) => {
   try {
-    const userId = req.user ? req.user.id : req.body.user_id;
+    const userId = req.user ? req.user.userId : req.body.user_id;
     const { item } = req.body;
 
     if (!userId || !item) {
@@ -75,7 +75,7 @@ const addToCart = async (req, res) => {
 // Remove item from cart
 const removeFromCart = async (req, res) => {
   try {
-    const userId = req.user ? req.user.id : req.body.user_id || req.query.user_id;
+    const userId = req.user ? req.user.userId : req.body.user_id || req.query.user_id;
     const uniqueId = req.params.uniqueId;
 
     if (!userId || !uniqueId) {
@@ -99,7 +99,7 @@ const removeFromCart = async (req, res) => {
 // Clear entire cart for a user (e.g. after checkout)
 const clearCart = async (req, res) => {
   try {
-    const userId = req.user ? req.user.id : req.body.user_id;
+    const userId = req.user ? req.user.userId : req.body.user_id;
 
     if (!userId) {
       return res.status(400).json({ success: false, message: "User ID is required" });
@@ -119,7 +119,7 @@ const clearCart = async (req, res) => {
 // Sync LocalStorage cart with DB (Merge logic)
 const syncCart = async (req, res) => {
   try {
-    const userId = req.user ? req.user.id : req.body.user_id;
+    const userId = req.user ? req.user.userId : req.body.user_id;
     const { items } = req.body;
 
     if (!userId) {
@@ -169,7 +169,7 @@ const syncCart = async (req, res) => {
 
 const getUserWishlist = async (req, res) => {
   try {
-    const userId = req.user ? req.user.id : req.body.user_id || req.query.user_id;
+    const userId = req.user ? req.user.userId : req.body.user_id || req.query.user_id;
     if (!userId) {
       return res.status(400).json({ success: false, message: "User ID is required" });
     }
@@ -191,7 +191,7 @@ const getUserWishlist = async (req, res) => {
 
 const toggleWishlist = async (req, res) => {
   try {
-    const userId = req.user ? req.user.id : req.body.user_id;
+    const userId = req.user ? req.user.userId : req.body.user_id;
     const { item } = req.body;
 
     if (!userId || !item) {
@@ -243,7 +243,7 @@ const toggleWishlist = async (req, res) => {
 
 const syncWishlist = async (req, res) => {
   try {
-    const userId = req.user ? req.user.id : req.body.user_id;
+    const userId = req.user ? req.user.userId : req.body.user_id;
     const { items } = req.body;
 
     if (!userId) {
