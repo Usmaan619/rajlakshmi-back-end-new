@@ -110,7 +110,7 @@ const generateShopmozoOrder = async (userData, cart, date) => {
       const shopmozoOrderId = response.data.data.order_id;
       let awbNumber = null;
       console.log(" Shopmozo order created:", shopmozoOrderId);
-      
+
       // Auto Assign Courier
       try {
         const assignRes = await axios.post(
@@ -124,8 +124,8 @@ const generateShopmozoOrder = async (userData, cart, date) => {
           }
         );
         if (assignRes.data?.result === "1") {
-           awbNumber = assignRes.data.data.awb;
-           console.log(" Courier auto-assigned, AWB:", awbNumber);
+          awbNumber = assignRes.data.data.awb;
+          console.log(" Courier auto-assigned, AWB:", awbNumber);
         }
       } catch (autoErr) {
         console.error(" Courier Auto-Assign failed:", autoErr.message);
