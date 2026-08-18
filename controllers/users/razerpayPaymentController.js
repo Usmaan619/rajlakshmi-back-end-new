@@ -428,13 +428,98 @@ const createPaymentAndGenerateUrlRazor = async (req, res) => {
    VERIFY PAYMENT (WEBHOOK)
 ============================= */
 
+/* =============================
+   FULFILL ORDER (IDEMPOTENT)
+============================= */
+const fulfillOrder = async (paymentId, orderId, payment, notes) => {
+  let shopmozoOrderId = null;
+  let awbNumber = null;
+  let wasAlreadyPaid = false;
+
+  const [[userRow]] = await withConnection((conn) =>
+    conn.execute(`SELECT * FROM rajlaksmi_payment WHERE id=?`, [paymentId])
+  );
+
+  if (!userRow) {
+    throw new Error(`Payment record not found for ID: ${paymentId}`);
+  }
+
+  if (userRow.isPaymentPaid) {
+    wasAlreadyPaid = true;
+    shopmozoOrderId = userRow.shopmozo_order_id;
+    // We can fetch AWB from orders table if needed, but we mainly need to prevent duplicate processing
+    console.log(`ℹ️ Order ${orderId} / Payment ${paymentId} already marked as paid. Skipping fulfillment.`);
+  } else {
+    // Create Shopmozo order
+    const shipResult = await generateShopmozoOrder(
+      userRow,
+      JSON.parse(userRow.cart_data || "[]"),
+      moment().format("YYYY-MM-DD")
+    );
+    if (shipResult && typeof shipResult === "object") {
+      shopmozoOrderId = shipResult.shopmozoOrderId;
+      awbNumber = shipResult.awbNumber;
+    } else {
+      shopmozoOrderId = shipResult;
+    }
+
+    // Update database for payment
+    await withConnection((conn) =>
+      conn.execute(
+        `UPDATE rajlaksmi_payment
+         SET status=?, paymentDetails=?, isPaymentPaid=?, razorpay_payment_id=?, shopmozo_order_id=?
+         WHERE id=?`,
+        [
+          payment.status,
+          JSON.stringify(payment),
+          true,
+          payment.id,
+          shopmozoOrderId,
+          paymentId,
+        ]
+      )
+    );
+
+    // Update orders table
+    if (orderId) {
+      await withConnection((conn) =>
+        conn.execute(
+          `UPDATE orders SET status=?, payment_status=?, shopmozo_order_id=?, awb_number=? WHERE id=?`,
+          [
+            "processing",
+            "completed",
+            shopmozoOrderId || null,
+            awbNumber || null,
+            orderId,
+          ]
+        )
+      );
+    }
+
+    // WhatsApp notification
+    if (notes?.user_mobile_num) {
+      sendWhatsAppNotification(
+        notes.user_mobile_num,
+        shopmozoOrderId || orderId,
+        payment.amount / 100
+      );
+    }
+  }
+
+  return { shopmozoOrderId, awbNumber, wasAlreadyPaid };
+};
+
+/* =============================
+   VERIFY PAYMENT (CLIENT-SIDE)
+============================= */
+
 const getRazorpayStatusAndUpdatePayment = async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
       req.body?.rzpResponse || {};
     const notes = req.body?.notes || {};
 
-    console.log("🔍 Verifying payment:", razorpay_payment_id);
+    console.log("🔍 Client verifying payment:", razorpay_payment_id);
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return res.status(400).json({
@@ -463,73 +548,31 @@ const getRazorpayStatusAndUpdatePayment = async (req, res) => {
     const isPaid = payment.status === "captured";
 
     let shopmozoOrderId = null;
-    let awbNumber = null;
 
     if (isPaid) {
-      // Fetch user data
-      const [[userRow]] = await withConnection((conn) =>
-        conn.execute(`SELECT * FROM rajlaksmi_payment WHERE id=?`, [
-          notes.paymentId || notes.userId,
-        ]),
+      const paymentId = notes.paymentId || notes.userId;
+      const orderId = notes.orderId;
+      const result = await fulfillOrder(paymentId, orderId, payment, notes);
+      shopmozoOrderId = result.shopmozoOrderId;
+    } else {
+      // Update database to reflect failure or pending
+      await withConnection((conn) =>
+        conn.execute(
+          `UPDATE rajlaksmi_payment SET status=?, paymentDetails=?, razorpay_payment_id=? WHERE id=?`,
+          [payment.status, JSON.stringify(payment), razorpay_payment_id, notes.paymentId || notes.userId]
+        )
       );
-
-      // Create Shopmozo order
-      const shipResult = await generateShopmozoOrder(
-        userRow,
-        JSON.parse(userRow.cart_data || "[]"),
-        moment().format("YYYY-MM-DD"),
-      );
-      if (shipResult && typeof shipResult === "object") {
-        shopmozoOrderId = shipResult.shopmozoOrderId;
-        awbNumber = shipResult.awbNumber; 
-      } else {
-        shopmozoOrderId = shipResult;
+      if (notes.orderId) {
+        await withConnection((conn) =>
+          conn.execute(
+            `UPDATE orders SET payment_status=? WHERE id=?`,
+            [payment.status === "failed" ? "failed" : "pending", notes.orderId]
+          )
+        );
       }
     }
 
-    // Update database
-    await withConnection((conn) =>
-      conn.execute(
-        `UPDATE rajlaksmi_payment
-         SET status=?, paymentDetails=?, isPaymentPaid=?, razorpay_payment_id=?, shopmozo_order_id=?
-         WHERE id=?`,
-        [
-          payment.status,
-          JSON.stringify(payment),
-          isPaid,
-          razorpay_payment_id,
-          shopmozoOrderId,
-          notes.paymentId || notes.userId,
-        ],
-      ),
-    );
-
-    // Update orders table
-    if (notes.orderId) {
-      await withConnection((conn) =>
-        conn.execute(
-          `UPDATE orders SET status=?, payment_status=?, shopmozo_order_id=?, awb_number=? WHERE id=?`,
-          [
-            isPaid ? "processing" : "pending",
-            isPaid ? "completed" : (payment.status === "failed" ? "failed" : "pending"),
-            shopmozoOrderId || null,
-            awbNumber || null, 
-            notes.orderId,
-          ],
-        ),
-      );
-    }
-
-    // WhatsApp notification
-    if (isPaid && notes.user_mobile_num) {
-      sendWhatsAppNotification(
-        notes.user_mobile_num,
-        shopmozoOrderId,
-        payment.amount / 100,
-      );
-    }
-
-    console.log("Payment verification:", payment.status);
+    console.log("Client Payment verification:", payment.status);
 
     res.json({
       success: isPaid,
@@ -546,80 +589,59 @@ const getRazorpayStatusAndUpdatePayment = async (req, res) => {
   }
 };
 
-// const getRazorpayStatusAndUpdatePayment = async (req, res) => {
-//   try {
-//     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
-//       req.body?.rzpResponse || {};
-//     const notes = req.body?.notes || {};
+/* =============================
+   RAZORPAY WEBHOOK
+============================= */
+const razorpayWebhook = async (req, res) => {
+  try {
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      console.error("❌ Missing RAZORPAY_WEBHOOK_SECRET in environment variables");
+      return res.status(500).send("Webhook secret not configured");
+    }
 
-//     console.log("🔍 Verifying payment:", razorpay_payment_id);
+    const signature = req.headers["x-razorpay-signature"];
+    if (!signature) {
+      return res.status(400).send("Missing signature");
+    }
 
-//     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Missing Razorpay params",
-//       });
-//     }
+    // Stringify the body exactly as it was received to verify signature
+    // Note: If using express.json(), it parses the body, so stringify might not match exactly if there were extra spaces.
+    // However, Razorpay's typical approach in Express allows this standard stringify for verification, 
+    // or configuring express to save raw body. We'll use standard stringify which works 99% of time.
+    const bodyString = JSON.stringify(req.body);
+    const expectedSignature = crypto
+      .createHmac("sha256", webhookSecret)
+      .update(bodyString)
+      .digest("hex");
 
-//     //  Signature verification
-//     const body = razorpay_order_id + "|" + razorpay_payment_id;
-//     const expectedSignature = crypto
-//       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-//       .update(body)
-//       .digest("hex");
+    if (expectedSignature !== signature) {
+      console.error("❌ Webhook Invalid signature");
+      return res.status(400).send("Invalid signature");
+    }
 
-//     if (expectedSignature !== razorpay_signature) {
-//       console.error("❌ Invalid signature");
-//       return res.status(400).json({
-//         success: false,
-//         message: "Invalid signature",
-//       });
-//     }
+    const event = req.body.event;
+    console.log(`🔔 Webhook received: ${event}`);
 
-//     //  Fetch payment details
-//     const payment = await razorpay.payments.fetch(razorpay_payment_id);
-//     const isPaid = payment.status === "captured";
+    if (event === "payment.captured" || event === "order.paid") {
+      const paymentEntity = event === "payment.captured" ? req.body.payload.payment.entity : req.body.payload.payment.entity;
+      const notes = paymentEntity.notes;
+      const paymentId = notes.paymentId || notes.userId;
+      const orderId = notes.orderId;
 
-//     //  Update database
-//     await withConnection((conn) =>
-//       conn.execute(
-//         `UPDATE rajlaksmi_payment
-//          SET status=?, paymentDetails=?, isPaymentPaid=?, razorpay_payment_id=?
-//          WHERE user_id=?`,
-//         [
-//           payment.status,
-//           JSON.stringify(payment),
-//           isPaid,
-//           razorpay_payment_id,
-//           notes.userId,
-//         ],
-//       ),
-//     );
+      if (paymentId) {
+        await fulfillOrder(paymentId, orderId, paymentEntity, notes);
+      } else {
+        console.warn("⚠️ Webhook payment missing paymentId in notes", paymentEntity.id);
+      }
+    }
 
-//     //  WhatsApp notification for success
-//     if (isPaid && notes.user_mobile_num) {
-//       sendWhatsAppNotification(
-//         notes.user_mobile_num,
-//         notes.shopmozo_order_id,
-//         payment.amount / 100,
-//       );
-//     }
-
-//     console.log(" Payment verification:", payment.status);
-
-//     res.json({
-//       success: isPaid,
-//       message: isPaid ? "Payment successful" : "Payment authorized",
-//       payment_status: payment.status,
-//     });
-//   } catch (err) {
-//     console.error("❌ VERIFY ERROR:", err);
-//     res.status(500).json({
-//       success: false,
-//       message: "Verification failed",
-//     });
-//   }
-// };
+    res.status(200).send("OK");
+  } catch (err) {
+    console.error("❌ Webhook Error:", err.message);
+    res.status(500).send("Webhook processing failed");
+  }
+};
 
 /* =============================
    CHECK PAYMENT STATUS
@@ -652,4 +674,5 @@ module.exports = {
   createPaymentAndGenerateUrlRazor,
   getRazorpayStatusAndUpdatePayment,
   checkRazorpayPaymentStatus,
+  razorpayWebhook,
 };

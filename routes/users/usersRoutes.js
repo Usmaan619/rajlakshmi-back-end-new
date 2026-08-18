@@ -15,6 +15,7 @@ const userActivityController = require("../../controllers/users/userActivityCont
 const {
   createPaymentAndGenerateUrlRazor,
   getRazorpayStatusAndUpdatePayment,
+  razorpayWebhook,
 } = require("../../controllers/users/razerpayPaymentController");
 
 const {
@@ -80,6 +81,7 @@ router.delete("/deleteb2bInquiry/:id", authMiddleware, deleteInquiry);
 // razorpay
 router.post("/create-order", createPaymentAndGenerateUrlRazor);
 router.post("/status", getRazorpayStatusAndUpdatePayment);
+router.post("/webhook/razorpay", razorpayWebhook);
 
 // Cart Routes
 router.get("/cart", authMiddleware, userActivityController.getUserCart);
