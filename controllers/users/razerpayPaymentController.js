@@ -191,7 +191,7 @@ const savePaymentDetails = async (userData, shopmozoOrderId, cart = []) => {
 
     /* 2️⃣ SAVE TO orders */
     const [orderResult] = await connection.execute(
-      "INSERT INTO orders (user_id, total_amount, shipping_address_id, payment_method, status, payment_status, shopmozo_order_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO orders (user_id, total_amount, shipping_address_id, payment_method, status, payment_status, shopmozo_order_id, shipping_charge, gst_amount, platform_fee) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         userData.user_id,
         userData.user_total_amount,
@@ -200,6 +200,9 @@ const savePaymentDetails = async (userData, shopmozoOrderId, cart = []) => {
         "pending",
         "pending",
         shopmozoOrderId,
+        userData.shipping_charge || 0,
+        userData.gst_amount || 0,
+        userData.platform_fee || 0,
       ],
     );
     const orderId = orderResult.insertId;
