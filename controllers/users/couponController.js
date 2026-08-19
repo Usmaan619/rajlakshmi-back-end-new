@@ -56,9 +56,9 @@ exports.applyCoupon = async (req, res) => {
       discount = coupon.discount_value;
     }
 
-    // Ensure discount doesn't exceed total
-    if (discount > cartTotal) {
-      discount = cartTotal;
+    // Ensure discount leaves at least ₹1 for the payment gateway minimum
+    if (discount >= cartTotal) {
+      discount = cartTotal - 1;
     }
 
     const finalPrice = cartTotal - discount;
