@@ -11,6 +11,7 @@ const { exportTableToExcel } = require("../../controllers/users/excelController"
 const { errorHandler } = require("../../middlewares/errorHandler");
 const { authMiddleware } = require("../../middlewares/authMiddleware");
 const userActivityController = require("../../controllers/users/userActivityController");
+const couponController = require("../../controllers/users/couponController");
 
 const {
   createPaymentAndGenerateUrlRazor,
@@ -94,6 +95,9 @@ router.post("/cart/sync", authMiddleware, userActivityController.syncCart);
 router.get("/wishlist", authMiddleware, userActivityController.getUserWishlist);
 router.post("/wishlist/toggle", authMiddleware, userActivityController.toggleWishlist);
 router.post("/wishlist/sync", authMiddleware, userActivityController.syncWishlist);
+
+// Coupon Route
+router.post("/checkout/apply-coupon", authMiddleware, couponController.applyCoupon);
 
 router.use(errorHandler);
 

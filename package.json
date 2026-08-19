@@ -8,7 +8,8 @@
     "dev": "nodemon --inspect server.js",
     "db:update-banners": "node update_db.js",
     "db:migrate-cart": "node run_migration.js",
-    "db:migrate-orders": "node migrate_orders_db.js"
+    "db:migrate-orders": "node migrate_orders_db.js",
+    "db:migrate-coupons": "node migrate_coupons.js"
   },
   "author": "Razik khan",
   "license": "MIT",

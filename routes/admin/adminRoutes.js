@@ -13,6 +13,7 @@ const loginController = require("../../controllers/admin/loginController");
 const forgotPasswordController = require("../../controllers/admin/forgotPasswordController");
 const userInfoController = require("../../controllers/admin/userInfoController");
 const monthlyReportController = require("../../controllers/admin/monthlyReportController");
+const couponAdminController = require("../../controllers/admin/couponAdminController");
 
 // Gauswarn
 const productController = require("../../controllers/users/productController");
@@ -105,6 +106,12 @@ router.get(
   authMiddleware,
   userActivityController.getAdminActiveCarts
 );
+
+// Coupons
+router.post("/coupons", authMiddleware, couponAdminController.createCoupon);
+router.get("/coupons", authMiddleware, couponAdminController.listAllCoupons);
+router.put("/coupons/:id", authMiddleware, couponAdminController.updateCoupon);
+router.delete("/coupons/:id", authMiddleware, couponAdminController.deleteCoupon);
 
 // ----------------------------
 // Gauswarn Routes

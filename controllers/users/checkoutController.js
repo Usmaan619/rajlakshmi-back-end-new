@@ -6,6 +6,7 @@ const {
   calculateTotalWeight,
   getShippingDimensions,
 } = require("../../utils/helper");
+const couponModel = require("../../model/coupons/couponModel");
 
 // Address Controllers
 const saveAddress = async (req, res) => {
@@ -241,7 +242,7 @@ const generateShopmozoOrder = async (userData, items, totalWeight, isCOD) => {
 
 // Order Controllers
 const placeOrder = async (req, res) => {
-  const { user_id, total_amount, shipping_address_id, items, payment_method } =
+  const { user_id, total_amount, shipping_address_id, items, payment_method, coupon_code, discount_amount } =
     req.body;
 
   const connection = await pool.getConnection();
@@ -250,8 +251,8 @@ const placeOrder = async (req, res) => {
 
     // 1. Create Order
     const [orderResult] = await connection.query(
-      "INSERT INTO orders (user_id, total_amount, shipping_address_id, payment_method, status, payment_status) VALUES (?, ?, ?, ?, 'pending', 'pending')",
-      [user_id, total_amount, shipping_address_id, payment_method || "COD"],
+      "INSERT INTO orders (user_id, total_amount, shipping_address_id, payment_method, status, payment_status, coupon_code, discount_amount) VALUES (?, ?, ?, ?, 'pending', 'pending', ?, ?)",
+      [user_id, total_amount, shipping_address_id, payment_method || "COD", coupon_code || null, discount_amount || 0],
     );
     const order_id = orderResult.insertId;
 
@@ -278,6 +279,18 @@ const placeOrder = async (req, res) => {
       "INSERT INTO order_items (order_id, product_id, product_name, quantity, price, weight, product_image) VALUES ?",
       [itemValues],
     );
+
+    // If coupon was used, increment usage count
+    if (coupon_code) {
+      try {
+        const coupon = await couponModel.findCouponByCode(coupon_code);
+        if (coupon) {
+          await couponModel.incrementUsedCount(coupon.id);
+        }
+      } catch (couponErr) {
+        console.error("Failed to increment coupon used count:", couponErr);
+      }
+    }
 
     await connection.commit();
     res
