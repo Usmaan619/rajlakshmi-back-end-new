@@ -16,6 +16,14 @@ exports.incrementUsedCount = async (id) => {
   });
 };
 
+exports.incrementCouponUsage = async (code) => {
+  return await withConnection(async (connection) => {
+    const query = `UPDATE coupons SET used_count = used_count + 1 WHERE code = ?`;
+    const [result] = await connection.execute(query, [code.toUpperCase()]);
+    return result;
+  });
+};
+
 exports.getAllCoupons = async () => {
   return await withConnection(async (connection) => {
     const query = `SELECT * FROM coupons ORDER BY created_at DESC`;
