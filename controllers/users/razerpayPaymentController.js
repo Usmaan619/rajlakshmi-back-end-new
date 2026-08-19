@@ -6,6 +6,7 @@ const jwt = require("jsonwebtoken");
 const moment = require("moment");
 const { withConnection, calculateTotalWeight } = require("../../utils/helper");
 const { pool } = require("../../config/dbConnection");
+const couponModel = require("../../model/coupons/couponModel");
 
 /* =============================
    RAZORPAY INSTANCE
@@ -191,7 +192,7 @@ const savePaymentDetails = async (userData, shopmozoOrderId, cart = []) => {
 
     /* 2️⃣ SAVE TO orders */
     const [orderResult] = await connection.execute(
-      "INSERT INTO orders (user_id, total_amount, shipping_address_id, payment_method, status, payment_status, shopmozo_order_id, shipping_charge, gst_amount, platform_fee) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO orders (user_id, total_amount, shipping_address_id, payment_method, status, payment_status, shopmozo_order_id, shipping_charge, gst_amount, platform_fee, coupon_code, discount_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         userData.user_id,
         userData.user_total_amount,
@@ -203,6 +204,8 @@ const savePaymentDetails = async (userData, shopmozoOrderId, cart = []) => {
         userData.shipping_charge || 0,
         userData.gst_amount || 0,
         userData.platform_fee || 0,
+        userData.coupon_code || null,
+        userData.discount_amount || 0,
       ],
     );
     const orderId = orderResult.insertId;
@@ -312,6 +315,7 @@ const createPaymentAndGenerateUrlRazor = async (req, res) => {
         user_name: String(userData.user_name).substring(0, 50),
         user_email: String(userData.user_email).substring(0, 50),
         user_mobile_num: String(userData.user_mobile_num).substring(0, 50),
+        coupon_code: userData.coupon_code ? String(userData.coupon_code).substring(0, 50) : "",
       },
     });
 
@@ -447,7 +451,7 @@ const fulfillOrder = async (paymentId, orderId, payment, notes) => {
     throw new Error(`Payment record not found for ID: ${paymentId}`);
   }
 
-  if (userRow.isPaymentPaid) {
+  if (userRow.isPaymentPaid == 1 || userRow.isPaymentPaid === true || userRow.isPaymentPaid === "1" || userRow.isPaymentPaid === "true") {
     wasAlreadyPaid = true;
     shopmozoOrderId = userRow.shopmozo_order_id;
     // We can fetch AWB from orders table if needed, but we mainly need to prevent duplicate processing
@@ -497,6 +501,16 @@ const fulfillOrder = async (paymentId, orderId, payment, notes) => {
           ]
         )
       );
+    }
+
+    // Increment coupon usage
+    if (notes?.coupon_code) {
+      try {
+        await couponModel.incrementCouponUsage(notes.coupon_code);
+        console.log(`🎟️ Coupon ${notes.coupon_code} usage incremented for Order ${orderId}`);
+      } catch(err) {
+        console.error("Failed to increment coupon usage:", err);
+      }
     }
 
     // WhatsApp notification
