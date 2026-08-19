@@ -190,24 +190,45 @@ const savePaymentDetails = async (userData, shopmozoOrderId, cart = []) => {
     ]);
     const paymentId = paymentResult.insertId;
 
-    /* 2️⃣ SAVE TO orders */
-    const [orderResult] = await connection.execute(
-      "INSERT INTO orders (user_id, total_amount, shipping_address_id, payment_method, status, payment_status, shopmozo_order_id, shipping_charge, gst_amount, platform_fee, coupon_code, discount_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      [
-        userData.user_id,
-        userData.user_total_amount,
-        userData.shipping_address_id,
-        userData.payment_method || "ONLINE",
-        "pending",
-        "pending",
-        shopmozoOrderId,
-        userData.shipping_charge || 0,
-        userData.gst_amount || 0,
-        userData.platform_fee || 0,
-        userData.coupon_code || null,
-        userData.discount_amount || 0,
-      ],
-    );
+    /* 2️⃣ SAVE TO orders — with coupon columns (falls back if migration not run) */
+    let orderResult;
+    try {
+      [orderResult] = await connection.execute(
+        "INSERT INTO orders (user_id, total_amount, shipping_address_id, payment_method, status, payment_status, shopmozo_order_id, shipping_charge, gst_amount, platform_fee, coupon_code, discount_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          userData.user_id,
+          userData.user_total_amount,
+          userData.shipping_address_id,
+          userData.payment_method || "ONLINE",
+          "pending",
+          "pending",
+          shopmozoOrderId,
+          userData.shipping_charge || 0,
+          userData.gst_amount || 0,
+          userData.platform_fee || 0,
+          userData.coupon_code || null,
+          userData.discount_amount || 0,
+        ],
+      );
+    } catch (insertErr) {
+      // Fallback: coupon columns might not exist yet (migration pending)
+      console.warn("⚠️ orders insert with coupon columns failed, retrying without them:", insertErr.message);
+      [orderResult] = await connection.execute(
+        "INSERT INTO orders (user_id, total_amount, shipping_address_id, payment_method, status, payment_status, shopmozo_order_id, shipping_charge, gst_amount, platform_fee) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          userData.user_id,
+          userData.user_total_amount,
+          userData.shipping_address_id,
+          userData.payment_method || "ONLINE",
+          "pending",
+          "pending",
+          shopmozoOrderId,
+          userData.shipping_charge || 0,
+          userData.gst_amount || 0,
+          userData.platform_fee || 0,
+        ],
+      );
+    }
     const orderId = orderResult.insertId;
 
     /* 3️⃣ SAVE TO order_items */
