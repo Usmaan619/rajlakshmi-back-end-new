@@ -57,8 +57,8 @@ const createPaymentAndGenerateUrl = async (req, res) => {
   const amountInPaise = user_total_amount * 100;
 
   // Insert user details into the database
-  const userQuery = `INSERT INTO rajlaksmi_payment (user_id, user_name, user_mobile_num, user_email, user_state, user_city, user_country, user_house_number, user_landmark, user_pincode, user_total_amount, purchase_price, product_quantity, date, time)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  const userQuery = `INSERT INTO rajlaksmi_payment (user_id, user_name, user_mobile_num, user_email, user_state, user_city, user_country, user_house_number, user_landmark, user_pincode, user_total_amount, purchase_price, product_quantity, date, time, shipping_charge, gst_amount, platform_fee)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
   try {
     const [result] = await withConnection(async (connection) => {
@@ -78,6 +78,9 @@ const createPaymentAndGenerateUrl = async (req, res) => {
         product_quantity,
         date,
         time,
+        req.body.shipping_charge || 0,
+        req.body.gst_amount || 0,
+        req.body.platform_fee || 0,
       ]);
     });
 

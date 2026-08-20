@@ -70,7 +70,12 @@ exports.getAllOrderDetails = async () => {
           id, 
           DATE, 
           TIME,
-          cart_data 
+          cart_data,
+          shipping_charge,
+          gst_amount,
+          platform_fee,
+          discount_amount,
+          coupon_code
         FROM rajlaksmi_payment
          ORDER BY date DESC, time DESC;
       `;

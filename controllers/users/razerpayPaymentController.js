@@ -164,9 +164,10 @@ const savePaymentDetails = async (userData, shopmozoOrderId, cart = []) => {
         user_id, user_name, user_mobile_num, user_email, user_state, user_city,
         user_country, user_house_number, user_landmark, user_pincode,
         user_total_amount, purchase_price, product_quantity,
-        date, time, shopmozo_order_id, status, isPaymentPaid, cart_data
+        date, time, shopmozo_order_id, status, isPaymentPaid, cart_data,
+        shipping_charge, gst_amount, platform_fee, discount_amount, coupon_code
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', false, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', false, ?, ?, ?, ?, ?, ?)
     `;
 
     const [paymentResult] = await connection.execute(queryPayment, [
@@ -187,6 +188,11 @@ const savePaymentDetails = async (userData, shopmozoOrderId, cart = []) => {
       time,
       shopmozoOrderId,
       JSON.stringify(cart),
+      userData.shipping_charge || 0,
+      userData.gst_amount || 0,
+      userData.platform_fee || 0,
+      userData.discount_amount || 0,
+      userData.coupon_code || null,
     ]);
     const paymentId = paymentResult.insertId;
 
