@@ -47,9 +47,10 @@ const addToCart = async (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
         quantity = VALUES(quantity),
-        price = VALUES(price)
+        price = VALUES(price),
+        gst_percent = VALUES(gst_percent)
       `;
-      
+
       const values = [
         userId,
         item.originalId || item.id,
@@ -137,9 +138,10 @@ const syncCart = async (req, res) => {
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
           quantity = quantity + VALUES(quantity),
-          price = VALUES(price)
+          price = VALUES(price),
+          gst_percent = VALUES(gst_percent)
         `;
-        
+
         const values = [
           userId,
           item.originalId || item.id,
@@ -186,7 +188,7 @@ const getUserWishlist = async (req, res) => {
   } catch (error) {
     console.error("Error fetching wishlist:", error);
     res.status(500).json({ success: false, message: "Failed to fetch wishlist" });
-  }
+  }jese  ghee hai gst and toor dal me nhi hai fir mishri me hai gst  to jo hai ghee and mishri hai unka dono alaga product hai undo ko gst alag calculate hona chahiye
 };
 
 const toggleWishlist = async (req, res) => {
@@ -217,7 +219,7 @@ const toggleWishlist = async (req, res) => {
           INSERT INTO rajlaksmi_wishlist (user_id, product_id, name, price, image, originalPrice, discount, weightOptions, rating)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
-        
+
         const values = [
           userId,
           item.id,
@@ -260,7 +262,7 @@ const syncWishlist = async (req, res) => {
           INSERT IGNORE INTO rajlaksmi_wishlist (user_id, product_id, name, price, image, originalPrice, discount, weightOptions, rating)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
-        
+
         const values = [
           userId,
           item.id,
@@ -313,10 +315,10 @@ const getAdminActiveCarts = async (req, res) => {
         ORDER BY c.updated_at DESC
       `;
       const [rows] = await connection.execute(query);
-      
+
       // Group by user
       const usersMap = {};
-      
+
       rows.forEach(row => {
         if (!usersMap[row.user_id]) {
           usersMap[row.user_id] = {
@@ -329,7 +331,7 @@ const getAdminActiveCarts = async (req, res) => {
             items: []
           };
         }
-        
+
         usersMap[row.user_id].items.push({
           unique_id: row.unique_id,
           product_id: row.product_id,
@@ -340,15 +342,15 @@ const getAdminActiveCarts = async (req, res) => {
           image: row.image,
           added_at: row.created_at
         });
-        
+
         usersMap[row.user_id].cart_total += (parseFloat(row.price) * parseInt(row.quantity));
-        
+
         // Update last active if this item is more recently updated
         if (new Date(row.updated_at) > new Date(usersMap[row.user_id].last_active)) {
           usersMap[row.user_id].last_active = row.updated_at;
         }
       });
-      
+
       return Object.values(usersMap).sort((a, b) => new Date(b.last_active) - new Date(a.last_active));
     });
 
