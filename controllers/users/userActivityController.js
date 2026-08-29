@@ -188,7 +188,7 @@ const getUserWishlist = async (req, res) => {
   } catch (error) {
     console.error("Error fetching wishlist:", error);
     res.status(500).json({ success: false, message: "Failed to fetch wishlist" });
-  }jese  ghee hai gst and toor dal me nhi hai fir mishri me hai gst  to jo hai ghee and mishri hai unka dono alaga product hai undo ko gst alag calculate hona chahiye
+  }
 };
 
 const toggleWishlist = async (req, res) => {
