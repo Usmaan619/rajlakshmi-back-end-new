@@ -7,7 +7,8 @@ const moment = require("moment");
 const { withConnection, calculateTotalWeight } = require("../../utils/helper");
 const { pool } = require("../../config/dbConnection");
 const couponModel = require("../../model/coupons/couponModel");
-
+const { generateInvoicePDF } = require("../../utils/invoiceGenerator");
+const { sendInvoiceEmail } = require("../../utils/emailService");
 /* =============================
    RAZORPAY INSTANCE
 ============================= */
@@ -365,6 +366,7 @@ const createPaymentAndGenerateUrlRazor = async (req, res) => {
       message: "Payment initiated successfully",
       razorpay_order_id: razorpayOrder.id,
       razorpay_order: razorpayOrder,
+      order_id: orderId,
       token,
       timestamp: moment().format("MMMM Do YYYY, h:mm:ss a"),
     });
@@ -539,6 +541,22 @@ const fulfillOrder = async (paymentId, orderId, payment, notes) => {
         console.error("Failed to increment coupon usage:", err);
       }
     }
+
+    // Invoice Generation and Email Dispatch (Asynchronous to prevent blocking)
+    (async () => {
+      try {
+        const cartItems = JSON.parse(userRow.cart_data || "[]");
+        const pdfBuffer = await generateInvoicePDF({ orderId: shopmozoOrderId || orderId }, userRow, cartItems);
+        
+        // Save pdf to database or temporary file if needed, 
+        // for now we just email it directly and generate on the fly for downloads.
+        if (userRow.user_email) {
+          await sendInvoiceEmail(userRow.user_email, userRow.user_name, shopmozoOrderId || orderId, pdfBuffer);
+        }
+      } catch (invoiceErr) {
+        console.error("❌ Failed to generate or send invoice:", invoiceErr);
+      }
+    })();
 
     // WhatsApp notification
     if (notes?.user_mobile_num) {

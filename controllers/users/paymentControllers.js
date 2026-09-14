@@ -13,6 +13,8 @@ const moment = require("moment");
 const jwt = require("jsonwebtoken");
 
 const { withConnection } = require("../../utils/helper");
+const { generateInvoicePDF } = require("../../utils/invoiceGenerator");
+const { sendInvoiceEmail } = require("../../utils/emailService");
 
 const createPaymentAndGenerateUrl = async (req, res) => {
   // const { status, amount, name, mobileNumber } = req.body;
@@ -251,7 +253,23 @@ const getPhonePeUrlStatusAndUpdatePayment = async (req, res) => {
     if (response?.data?.code === "PAYMENT_SUCCESS") {
       const result = await sendWhatsAppMessage(mobNo, orderId, amount);
 
-      return res.redirect(process.env.REDIRECT_URL_TO_SUCCESS_PAGE);
+      // Invoice Generation and Email Dispatch
+      try {
+        const [[userRow]] = await withConnection((conn) => 
+          conn.execute("SELECT * FROM rajlaksmi_payment WHERE id=?", [tarnId])
+        );
+        if (userRow) {
+          const cartItems = JSON.parse(userRow.cart_data || "[]");
+          const pdfBuffer = await generateInvoicePDF({ orderId: orderId }, userRow, cartItems);
+          if (userRow.user_email) {
+            await sendInvoiceEmail(userRow.user_email, userRow.user_name, orderId, pdfBuffer);
+          }
+        }
+      } catch (invoiceErr) {
+        console.error("❌ Failed to generate or send invoice (PhonePe):", invoiceErr);
+      }
+
+      return res.redirect(`${process.env.REDIRECT_URL_TO_SUCCESS_PAGE}?order_id=${orderId}`);
     }
 
     if (response?.data?.code === "PAYMENT_ERROR") {

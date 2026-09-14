@@ -7,6 +7,7 @@ const {
   getShippingDimensions,
 } = require("../../utils/helper");
 const couponModel = require("../../model/coupons/couponModel");
+const { generateInvoicePDF } = require("../../utils/invoiceGenerator");
 
 // Address Controllers
 const saveAddress = async (req, res) => {
@@ -487,6 +488,57 @@ const getTrackingStatus = async (req, res) => {
   }
 };
 
+const downloadInvoice = async (req, res) => {
+  const { order_id } = req.params;
+  try {
+    const [orderRows] = await pool.query(
+      "SELECT o.*, a.*, u.email as account_email FROM orders o JOIN user_addresses a ON o.shipping_address_id = a.id LEFT JOIN rajlaxmi_user_new u ON o.user_id = u.id WHERE o.id = ?",
+      [order_id],
+    );
+
+    if (orderRows.length === 0) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    const [items] = await pool.query(
+      "SELECT * FROM order_items WHERE order_id = ?",
+      [order_id],
+    );
+
+    // Format user data to match expected structure
+    const orderData = orderRows[0];
+    const userForInvoice = {
+      user_name: orderData.full_name,
+      user_house_number: orderData.address_line1,
+      user_landmark: orderData.address_line2,
+      user_city: orderData.city,
+      user_state: orderData.state,
+      user_pincode: orderData.pincode,
+      user_country: orderData.country,
+      user_mobile_num: orderData.phone,
+      user_email: orderData.email || orderData.account_email || "", // if email is there
+      shipping_charge: orderData.shipping_charge,
+      gst_amount: orderData.gst_amount,
+      platform_fee: orderData.platform_fee,
+      discount_amount: orderData.discount_amount,
+      user_total_amount: orderData.total_amount
+    };
+
+    const pdfBuffer = await generateInvoicePDF({ orderId: orderData.shopmozo_order_id || order_id }, userForInvoice, items);
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="Invoice_${orderData.shopmozo_order_id || order_id}.pdf"`,
+      'Content-Length': pdfBuffer.length
+    });
+
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error("Invoice Download Error:", error);
+    res.status(500).json({ success: false, message: "Failed to generate invoice" });
+  }
+};
+
 module.exports = {
   saveAddress,
   getAddresses,
@@ -498,4 +550,5 @@ module.exports = {
   getOrderDetails,
   updateOrderStatus,
   getTrackingStatus,
+  downloadInvoice,
 };

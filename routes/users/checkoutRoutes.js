@@ -12,6 +12,7 @@ router.delete("/address/:id", authMiddleware, checkoutController.deleteAddress);
 router.post("/order/place", authMiddleware, checkoutController.placeOrder);
 router.get("/orders/:user_id", authMiddleware, checkoutController.getMyOrders);
 router.get("/order/:order_id", authMiddleware, checkoutController.getOrderDetails);
+router.get("/order/:order_id/invoice", authMiddleware, checkoutController.downloadInvoice);
 router.post("/order/update/:id", authMiddleware, checkoutController.updateOrderStatus);
 router.post("/get-shipping", authMiddleware, checkoutController.getShippingRates);
 router.get("/track/:order_id", authMiddleware, checkoutController.getTrackingStatus);
