@@ -520,7 +520,7 @@ const fulfillOrder = async (paymentId, orderId, payment, notes) => {
     if (orderId) {
       await withConnection((conn) =>
         conn.execute(
-          `UPDATE orders SET status=?, payment_status=?, shopmozo_order_id=?, awb_number=? WHERE id=?`,
+          `UPDATE orders SET status=?, payment_status=?, shopmozo_order_id=?, awb_number=?, isPaymentPaid=1 WHERE id=?`,
           [
             "processing",
             "completed",
@@ -548,13 +548,19 @@ const fulfillOrder = async (paymentId, orderId, payment, notes) => {
         const cartItems = JSON.parse(userRow.cart_data || "[]");
         const pdfBuffer = await generateInvoicePDF({ orderId: shopmozoOrderId || orderId }, userRow, cartItems);
         
-        // Save pdf to database or temporary file if needed, 
-        // for now we just email it directly and generate on the fly for downloads.
         if (userRow.user_email) {
-          await sendInvoiceEmail(userRow.user_email, userRow.user_name, shopmozoOrderId || orderId, pdfBuffer);
+          console.log(`📧 Sending invoice email to: ${userRow.user_email} for Order ${shopmozoOrderId || orderId}`);
+          const emailSent = await sendInvoiceEmail(userRow.user_email, userRow.user_name, shopmozoOrderId || orderId, pdfBuffer);
+          if (emailSent) {
+            console.log(`✅ Invoice email sent successfully to ${userRow.user_email}`);
+          } else {
+            console.error(`❌ Invoice email failed to send to ${userRow.user_email}`);
+          }
+        } else {
+          console.warn(`⚠️ No email found for user ${userRow.user_name} (Payment ID: ${paymentId}). Invoice email skipped.`);
         }
       } catch (invoiceErr) {
-        console.error("❌ Failed to generate or send invoice:", invoiceErr);
+        console.error("❌ Failed to generate or send invoice:", invoiceErr.message, invoiceErr.stack);
       }
     })();
 

@@ -11,7 +11,8 @@
     "db:migrate-orders": "node migrate_orders_db.js",
     "db:migrate-coupons": "node migrate_coupons.js",
     "db:migrate-payment": "node migrate_payment.js",
-    "db:migrate-gst": "node scripts/add_cart_gst_field.js"
+    "db:migrate-gst": "node scripts/add_cart_gst_field.js",
+    "db:migrate-isPaymentPaid": "node migrate_add_isPaymentPaid.js"
   },
   "author": "Rajendra Rajpurohit",
   "license": "MIT",

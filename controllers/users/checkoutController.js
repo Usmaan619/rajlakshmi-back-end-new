@@ -309,7 +309,7 @@ const getMyOrders = async (req, res) => {
   const { user_id } = req.params;
   try {
     const [orders] = await pool.query(
-      "SELECT o.*, a.full_name, a.address_line1, a.city, a.country FROM orders o JOIN user_addresses a ON o.shipping_address_id = a.id WHERE o.user_id = ? ORDER BY o.created_at DESC",
+      "SELECT o.*, o.isPaymentPaid, a.full_name, a.address_line1, a.city, a.country FROM orders o JOIN user_addresses a ON o.shipping_address_id = a.id WHERE o.user_id = ? ORDER BY o.created_at DESC",
       [user_id],
     );
 
@@ -327,6 +327,7 @@ const getMyOrders = async (req, res) => {
     const ordersWithItems = orders.map((order) => {
       return {
         ...order,
+        isPaymentPaid: String(order.isPaymentPaid || "0"),
         items: items
           .filter((item) => item.order_id === order.id)
           .map((item) => ({
@@ -361,9 +362,10 @@ const getOrderDetails = async (req, res) => {
       [order_id],
     );
 
+    const orderData = orderRows[0];
     res.status(200).json({
       success: true,
-      order: orderRows[0],
+      order: { ...orderData, isPaymentPaid: String(orderData.isPaymentPaid || "0") },
       items: items.map((item) => ({ ...item, image: item.product_image })),
     });
   } catch (error) {
