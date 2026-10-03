@@ -90,6 +90,11 @@ router.post(
   userInfoController.updateOrderStatus,
 );
 router.get(
+  "/downloadInvoice/:id",
+  authMiddleware,
+  userInfoController.adminDownloadInvoice,
+);
+router.get(
   "/getRajlaxmiUsers",
   authMiddleware,
   userInfoController.getRajlaxmiUsers,
