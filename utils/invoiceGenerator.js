@@ -202,15 +202,18 @@ const generateInvoicePDF = async (orderData, user, cart) => {
         .text("BILL TO", leftMargin + cardPadding, cardY);
 
       cardY += 16;
+      const name = user.user_name || "";
+      const nameHeight = doc.heightOfString(name, { width: cardWidth - cardPadding * 2 }) || 14;
       doc
         .font("Helvetica-Bold")
         .fontSize(11)
         .fillColor(DARK_TEXT)
-        .text(user.user_name || "", leftMargin + cardPadding, cardY, {
+        .text(name, leftMargin + cardPadding, cardY, {
           width: cardWidth - cardPadding * 2,
         });
 
-      cardY += 16;
+      cardY += Math.max(nameHeight, 14) + 6;
+
       const addressParts = [
         [user.user_house_number, user.user_landmark].filter(Boolean).join(", "),
         [user.user_city, user.user_state].filter(Boolean).join(", ") +
@@ -220,18 +223,20 @@ const generateInvoicePDF = async (orderData, user, cart) => {
 
       doc.font("Helvetica").fontSize(9).fillColor(BODY_TEXT);
       addressParts.forEach((line) => {
+        const textHeight = doc.heightOfString(line, { width: cardWidth - cardPadding * 2 });
         doc.text(line, leftMargin + cardPadding, cardY, {
           width: cardWidth - cardPadding * 2,
         });
-        cardY += 12;
+        cardY += textHeight + 2;
       });
 
       cardY += 4;
       if (user.user_mobile_num) {
+        const phoneHeight = doc.heightOfString(`Phone: ${user.user_mobile_num}`, { width: cardWidth - cardPadding * 2 });
         doc.text(`Phone: ${user.user_mobile_num}`, leftMargin + cardPadding, cardY, {
           width: cardWidth - cardPadding * 2,
         });
-        cardY += 12;
+        cardY += phoneHeight + 2;
       }
       if (user.user_email) {
         doc.text(`Email: ${user.user_email}`, leftMargin + cardPadding, cardY, {
@@ -390,7 +395,7 @@ const generateInvoicePDF = async (orderData, user, cart) => {
         if (item.gstPercent > 0) {
           doc.font("Helvetica").fontSize(7).fillColor(MUTED_TEXT);
           doc.text(
-            `GST: ${item.gstPercent.toFixed(2)}% (+₹${item.gstAmount.toFixed(2)})`,
+            `GST: ${item.gstPercent.toFixed(2)}% (+Rs.${item.gstAmount.toFixed(2)})`,
             colX.desc + 8,
             textY + 13
           );
@@ -407,7 +412,7 @@ const generateInvoicePDF = async (orderData, user, cart) => {
         doc.text(String(item.qty), colX.qty, textY, { width: colWidths.qty, align: "center" });
 
         // Price
-        doc.text(`₹${item.price.toFixed(2)}`, colX.price, textY, {
+        doc.text(`Rs.${item.price.toFixed(2)}`, colX.price, textY, {
           width: colWidths.price,
           align: "right",
         });
@@ -417,7 +422,7 @@ const generateInvoicePDF = async (orderData, user, cart) => {
           .font("Helvetica-Bold")
           .fontSize(9)
           .fillColor(DARK_TEXT)
-          .text(`₹${item.total.toFixed(2)}`, colX.total, textY, {
+          .text(`Rs.${item.total.toFixed(2)}`, colX.total, textY, {
             width: colWidths.total - 8,
             align: "right",
           });
@@ -445,11 +450,11 @@ const generateInvoicePDF = async (orderData, user, cart) => {
       // ════════════════════════════════════════════════════════
       const summaryWidth = 260;
       const summaryX = rightEdge - summaryWidth;
-      let summaryRows = [{ label: "Subtotal", value: `₹${subtotal.toFixed(2)}` }];
-      if (shipping > 0) summaryRows.push({ label: "Shipping", value: `₹${shipping.toFixed(2)}` });
-      if (gst > 0) summaryRows.push({ label: "GST", value: `₹${gst.toFixed(2)}` });
-      if (platformFee > 0) summaryRows.push({ label: "Platform Fee", value: `₹${platformFee.toFixed(2)}` });
-      if (discount > 0) summaryRows.push({ label: "Discount", value: `-₹${discount.toFixed(2)}`, isDiscount: true });
+      let summaryRows = [{ label: "Subtotal", value: `Rs.${subtotal.toFixed(2)}` }];
+      if (shipping > 0) summaryRows.push({ label: "Shipping", value: `Rs.${shipping.toFixed(2)}` });
+      if (gst > 0) summaryRows.push({ label: "GST", value: `Rs.${gst.toFixed(2)}` });
+      if (platformFee > 0) summaryRows.push({ label: "Platform Fee", value: `Rs.${platformFee.toFixed(2)}` });
+      if (discount > 0) summaryRows.push({ label: "Discount", value: `-Rs.${discount.toFixed(2)}`, isDiscount: true });
 
       const summaryRowH = 24;
       const totalRowH = 36;
@@ -494,7 +499,7 @@ const generateInvoicePDF = async (orderData, user, cart) => {
       // Grand Total
       doc.font("Helvetica-Bold").fontSize(16).fillColor(BRAND_GREEN);
       doc.text("Grand Total", summaryX + sumPad, sumY);
-      doc.text(`₹${totalAmount.toFixed(2)}`, summaryX + sumPad, sumY, {
+      doc.text(`Rs.${totalAmount.toFixed(2)}`, summaryX + sumPad, sumY, {
         width: summaryWidth - sumPad * 2,
         align: "right",
       });
